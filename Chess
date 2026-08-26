@@ -9,18 +9,6 @@
   #c { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
   #c.drag { cursor: grabbing; }
   #c:focus { outline: none; }
-  #ui {
-    position: fixed; inset: 0; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; text-align: center;
-    color: #d8c4a0; font-family: Georgia, "Times New Roman", serif;
-    background: rgba(8, 10, 14, 0.78); pointer-events: none;
-  }
-  #ui h1 {
-    font-weight: 400; letter-spacing: 12px; font-size: 46px; margin: 0 0 8px;
-    color: #f0e0c0;
-  }
-  #ui p { margin: 5px 0; color: #8a7a62; letter-spacing: 1px; font-size: 14px; }
-  #ui .big { color: #e8d4a8; font-size: 18px; margin-top: 16px; }
   #hud {
     position: fixed; left: 0; right: 0; bottom: 16px; text-align: center;
     color: #8a7a62; font: 13px Georgia, serif; letter-spacing: 1px;
@@ -59,9 +47,6 @@
     position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
     color: #ff6b6b; font: 12px Consolas, monospace; white-space: pre-wrap; display: none;
   }
-  html.embed #ui h1 { font-size: 28px; letter-spacing: 8px; }
-  html.embed #ui p { font-size: 12px; }
-  html.embed #ui .big { font-size: 15px; }
   html.embed #turn { font-size: 14px; top: 10px; left: 10px; }
   html.embed #side { top: 10px; right: 10px; font-size: 11px; }
   html.embed #elo {
@@ -73,13 +58,6 @@
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="ui">
-  <h1>OVERBOARD</h1>
-  <p>third-person chess &nbsp;·&nbsp; house engine or gambit engine</p>
-  <p class="big">CLICK THE BOARD TO PLAY</p>
-  <p>LEFT CLICK MOVE &nbsp; RIGHT DRAG ORBIT &nbsp; SCROLL ZOOM &nbsp; WASD ORBIT</p>
-  <p>R NEW GAME &nbsp; T TOGGLE AI &nbsp; SET ELO ON THE RIGHT</p>
-</div>
 <div id="turn">WHITE TO MOVE</div>
 <div id="side">AI plays black</div>
 <div id="elo">
@@ -115,7 +93,6 @@ window.onerror = function (msg, src, line) {
 
 var canvas = document.getElementById('c');
 var ctx = canvas.getContext('2d');
-var ui = document.getElementById('ui');
 var hud = document.getElementById('hud');
 var turnEl = document.getElementById('turn');
 var sideEl = document.getElementById('side');
@@ -149,7 +126,7 @@ resize();
 
 var SQ = 1.22;
 var FOV = 58 * Math.PI / 180;
-var started = false;
+var started = true;
 var vsAI = true;
 var aiElo = 1200;
 var engineMode = 'house';
@@ -1981,11 +1958,7 @@ function canvasPos(e) {
 }
 
 function tryClick(mx, my) {
-  if (!started) {
-    started = true;
-    ui.style.display = 'none';
-    if (audioCtx && audioCtx.resume) audioCtx.resume();
-  }
+  try { if (audioCtx && audioCtx.resume) audioCtx.resume(); } catch (e) {}
   if (busy() && over) {
     setupBoard();
     return;
