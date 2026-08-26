@@ -1,0 +1,2152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Overboard</title>
+<style>
+  html, body { margin: 0; width: 100%; height: 100%; background: #0c1014; overflow: hidden; overscroll-behavior: none; }
+  #c { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+  #c.drag { cursor: grabbing; }
+  #c:focus { outline: none; }
+  #ui {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    color: #d8c4a0; font-family: Georgia, "Times New Roman", serif;
+    background: rgba(8, 10, 14, 0.78); pointer-events: none;
+  }
+  #ui h1 {
+    font-weight: 400; letter-spacing: 12px; font-size: 46px; margin: 0 0 8px;
+    color: #f0e0c0;
+  }
+  #ui p { margin: 5px 0; color: #8a7a62; letter-spacing: 1px; font-size: 14px; }
+  #ui .big { color: #e8d4a8; font-size: 18px; margin-top: 16px; }
+  #hud {
+    position: fixed; left: 0; right: 0; bottom: 16px; text-align: center;
+    color: #8a7a62; font: 13px Georgia, serif; letter-spacing: 1px;
+    pointer-events: none;
+  }
+  #turn {
+    position: fixed; top: 16px; left: 18px;
+    font: 18px Georgia, serif; color: #f0e0c0; pointer-events: none;
+  }
+  #turn b { font-weight: 400; color: #c8a060; }
+  #side {
+    position: fixed; top: 16px; right: 18px; text-align: right;
+    font: 13px Georgia, serif; color: #8a7a62; pointer-events: none;
+  }
+  #elo {
+    position: fixed; top: 52px; right: 16px; width: 232px;
+    background: rgba(12, 14, 18, 0.72); border: 1px solid #3a3226;
+    padding: 12px 14px 10px; color: #d8c4a0;
+    font: 13px Georgia, serif; z-index: 4;
+  }
+  #elo .elabel { display: flex; justify-content: space-between; margin-bottom: 8px; }
+  #elo b { color: #f0e0c0; font-weight: 400; }
+  #elo input[type=range] { width: 100%; accent-color: #c8a060; cursor: pointer; }
+  #elopresets { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 6px; }
+  #elo button {
+    background: #1a1814; color: #c8b490; border: 1px solid #4a4030;
+    font: 12px Georgia, serif; padding: 3px 7px; cursor: pointer;
+  }
+  #elo button.on { background: #3a3020; color: #f0e0c0; border-color: #c8a060; }
+  #aitog { width: 100%; margin-top: 4px; padding: 6px !important; }
+  #engines, #colors { display: flex; gap: 4px; margin: 6px 0; }
+  #engines button, #colors button { flex: 1; }
+  #sfstat { margin-top: 8px; font-size: 11px; color: #7a6a52; }
+  #sfstat a { color: #c8a060; }
+  #err {
+    position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+    color: #ff6b6b; font: 12px Consolas, monospace; white-space: pre-wrap; display: none;
+  }
+  html.embed #ui h1 { font-size: 28px; letter-spacing: 8px; }
+  html.embed #ui p { font-size: 12px; }
+  html.embed #ui .big { font-size: 15px; }
+  html.embed #turn { font-size: 14px; top: 10px; left: 10px; }
+  html.embed #side { top: 10px; right: 10px; font-size: 11px; }
+  html.embed #elo {
+    top: auto; bottom: 40px; right: 8px; width: 176px;
+    padding: 8px 10px 8px; font-size: 11px;
+  }
+  html.embed #hud { bottom: 8px; font-size: 11px; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <h1>OVERBOARD</h1>
+  <p>third-person chess &nbsp;·&nbsp; house engine or gambit engine</p>
+  <p class="big">CLICK THE BOARD TO PLAY</p>
+  <p>LEFT CLICK MOVE &nbsp; RIGHT DRAG ORBIT &nbsp; SCROLL ZOOM &nbsp; WASD ORBIT</p>
+  <p>R NEW GAME &nbsp; T TOGGLE AI &nbsp; SET ELO ON THE RIGHT</p>
+</div>
+<div id="turn">WHITE TO MOVE</div>
+<div id="side">AI plays black</div>
+<div id="elo">
+  <div class="elabel">AI ELO <b id="elonum">1200</b></div>
+  <input id="eloslider" type="range" min="400" max="2200" step="50" value="1200">
+  <div id="elopresets">
+    <button type="button" data-elo="400">400</button>
+    <button type="button" data-elo="800">800</button>
+    <button type="button" data-elo="1200" class="on">1200</button>
+    <button type="button" data-elo="1600">1600</button>
+    <button type="button" data-elo="2000">2000</button>
+    <button type="button" data-elo="2200">2200</button>
+  </div>
+  <div id="engines">
+    <button type="button" data-eng="house">HOUSE</button>
+    <button type="button" data-eng="gambit">GAMBIT</button>
+  </div>
+  <div id="colors">
+    <button type="button" data-color="1" class="on">AI BLACK</button>
+    <button type="button" data-color="0">AI WHITE</button>
+  </div>
+  <button type="button" id="aitog" class="on">AI ON · BLACK</button>
+  <div id="sfstat">house engine · positional</div>
+</div>
+<div id="hud">pick a cream piece, then a square</div>
+<div id="err"></div>
+<script>
+window.onerror = function (msg, src, line) {
+  var el = document.getElementById('err');
+  el.style.display = 'block';
+  el.textContent = msg + '\n' + src + ':' + line;
+};
+
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+var ui = document.getElementById('ui');
+var hud = document.getElementById('hud');
+var turnEl = document.getElementById('turn');
+var sideEl = document.getElementById('side');
+var eloNum = document.getElementById('elonum');
+var eloSlider = document.getElementById('eloslider');
+var eloPresets = document.getElementById('elopresets');
+var aiTog = document.getElementById('aitog');
+var sfStat = document.getElementById('sfstat');
+canvas.tabIndex = 0;
+
+try {
+  if (window.self !== window.top) document.documentElement.className = 'embed';
+} catch (e) {
+  document.documentElement.className = 'embed';
+}
+
+var W = 0, H = 0;
+function resize() {
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  if (window.visualViewport) {
+    vw = window.visualViewport.width;
+    vh = window.visualViewport.height;
+  }
+  W = canvas.width = Math.max(1, vw | 0);
+  H = canvas.height = Math.max(1, vh | 0);
+}
+window.addEventListener('resize', resize);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
+resize();
+
+var SQ = 1.22;
+var FOV = 58 * Math.PI / 180;
+var started = false;
+var vsAI = true;
+var aiElo = 1200;
+var engineMode = 'house';
+var aiColor = 1;
+var lastGambit = '';
+var sparks = [];
+var screenFx = null;
+var hintMove = null;
+var hintKey = '';
+var nextId = 1;
+var time = 0;
+
+var cam = { x: 0, y: 10.6, z: -10.3 };
+var look = { x: 0, y: 0.4, z: 0 };
+var orbit = { yaw: Math.PI, pitch: 0.78, dist: 14.5 };
+var focus = { x: 0, y: 0.35, z: 0 };
+var wantFocus = { x: 0, y: 0.35, z: 0 };
+var basis = { fx: 0, fy: 0, fz: 1, rx: 1, ry: 0, rz: 0, ux: 0, uy: 1, uz: 0 };
+
+var board, turn, castle, ep, selected, legal, hover, anims, fallen, over, lastMove, checkPulse;
+var dragging = false, lastMX = 0, lastMY = 0;
+var keys = {};
+var uciMoves = [];
+var gameToken = 0;
+
+function applySideCam() {
+  var user = vsAI ? (1 - aiColor) : 0;
+  if (user === 0) {
+    orbit.yaw = Math.PI;
+    cam.x = 0; cam.y = 10.6; cam.z = -10.3;
+  } else {
+    orbit.yaw = 0;
+    cam.x = 0; cam.y = 10.6; cam.z = 10.3;
+  }
+}
+
+var GAMBIT_BOOK = [
+  { name: "King's Gambit", moves: ['e2e4', 'e7e5', 'f2f4'] },
+  { name: "King's Gambit Accepted", moves: ['e2e4', 'e7e5', 'f2f4', 'e5f4', 'g1f3'] },
+  { name: "Bishop's Gambit", moves: ['e2e4', 'e7e5', 'f2f4', 'e5f4', 'f1c4'] },
+  { name: "Danish Gambit", moves: ['e2e4', 'e7e5', 'd2d4', 'e5d4', 'c2c3'] },
+  { name: "Danish Gambit Accepted", moves: ['e2e4', 'e7e5', 'd2d4', 'e5d4', 'c2c3', 'd4c3', 'f1c4'] },
+  { name: "Evans Gambit", moves: ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1c4', 'f8c5', 'b2b4'] },
+  { name: "Evans Gambit Accepted", moves: ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1c4', 'f8c5', 'b2b4', 'c5b4', 'c2c3'] },
+  { name: "Scotch Gambit", moves: ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'd2d4', 'e5d4', 'f1c4'] },
+  { name: "Goring Gambit", moves: ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'd2d4', 'e5d4', 'c2c3'] },
+  { name: "Vienna Gambit", moves: ['e2e4', 'e7e5', 'b1c3', 'g8f6', 'f2f4'] },
+  { name: "Smith-Morra", moves: ['e2e4', 'c7c5', 'd2d4', 'c5d4', 'c2c3'] },
+  { name: "Smith-Morra Accepted", moves: ['e2e4', 'c7c5', 'd2d4', 'c5d4', 'c2c3', 'd4c3', 'b1c3'] },
+  { name: "Wing Gambit", moves: ['e2e4', 'c7c5', 'b2b4'] },
+  { name: "Blackmar-Diemer", moves: ['d2d4', 'd7d5', 'e2e4', 'd5e4', 'b1c3', 'g8f6', 'f2f3'] },
+  { name: "Staunton Gambit", moves: ['d2d4', 'f7f5', 'e2e4'] },
+  { name: "Queen's Gambit", moves: ['d2d4', 'd7d5', 'c2c4'] },
+  { name: "Budapest", moves: ['d2d4', 'g8f6', 'c2c4', 'e7e5'] },
+  { name: "Albin Countergambit", moves: ['d2d4', 'd7d5', 'c2c4', 'e7e5'] },
+  { name: "Englund Gambit", moves: ['d2d4', 'e7e5'] },
+  { name: "Latvian Gambit", moves: ['e2e4', 'e7e5', 'g1f3', 'f7f5'] },
+  { name: "Elephant Gambit", moves: ['e2e4', 'e7e5', 'g1f3', 'd7d5'] },
+  { name: "Falkbeer", moves: ['e2e4', 'e7e5', 'f2f4', 'd7d5'] },
+  { name: "Benko Gambit", moves: ['d2d4', 'g8f6', 'c2c4', 'c7c5', 'd4d5', 'b7b5'] },
+  { name: "Traxler", moves: ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1c4', 'g8f6', 'f3g5', 'f8c5'] },
+  { name: "Marshall Attack", moves: ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1b5', 'a7a6', 'b5a4', 'g8f6', 'e1g1', 'f8e7', 'f1e1', 'b7b5', 'a4b3', 'e8g8', 'c2c3', 'd7d5'] }
+];
+
+function bookReply() {
+  var matches = [], i, j, line, ok, next, mover;
+  for (i = 0; i < GAMBIT_BOOK.length; i++) {
+    line = GAMBIT_BOOK[i];
+    if (line.moves.length <= uciMoves.length) continue;
+    ok = true;
+    for (j = 0; j < uciMoves.length; j++) {
+      if (line.moves[j] !== uciMoves[j]) { ok = false; break; }
+    }
+    if (!ok) continue;
+    mover = uciMoves.length % 2;
+    if (mover !== aiColor) continue;
+    next = line.moves[uciMoves.length];
+    matches.push({ uci: next, name: line.name });
+  }
+  if (!matches.length) return null;
+  var pick = matches[(Math.random() * matches.length) | 0];
+  lastGambit = pick.name;
+  return uciToMove(pick.uci);
+}
+
+function evalGambit(b, color) {
+  var s = 0, r, f, p, ek, home, dist, w = 0.55;
+  var GVAL = { p: 70, n: 280, b: 290, r: 430, q: 820, k: 0 };
+  for (r = 0; r < 8; r++) for (f = 0; f < 8; f++) {
+    p = b[r][f];
+    if (!p) continue;
+    home = p.c === 0 ? 0 : 7;
+    s += (p.c === color ? 1 : -1) * (GVAL[p.t] + pstAt(p.t, p.c, f, r) * w);
+    if (p.t !== 'p' && p.t !== 'k' && r !== home) s += (p.c === color ? 1 : -1) * 22;
+    if ((p.t === 'n' || p.t === 'b') && Math.abs(r - home) >= 2) s += (p.c === color ? 1 : -1) * 12;
+  }
+  ek = kingSq(b, 1 - color);
+  if (ek) {
+    home = (1 - color) === 0 ? 0 : 7;
+    if (ek.r !== home) s += 28;
+    if (ek.f >= 2 && ek.f <= 5 && ek.r >= 2 && ek.r <= 5) s += 36;
+    for (r = 0; r < 8; r++) for (f = 0; f < 8; f++) {
+      p = b[r][f];
+      if (!p || p.c !== color || p.t === 'k') continue;
+      dist = Math.abs(f - ek.f) + Math.abs(r - ek.r);
+      if (dist <= 3) s += p.t === 'q' || p.t === 'n' ? 16 : 10;
+      if ((1 - color) === 0 && r <= 2 && (f === 5 || f === 6)) s += 8;
+      if ((1 - color) === 1 && r >= 5 && (f === 5 || f === 6)) s += 8;
+    }
+  }
+  if (inCheck(b, 1 - color)) s += 70;
+  if (inCheck(b, color)) s -= 40;
+  return s;
+}
+
+function sqWorld(f, r) {
+  return { x: (f - 3.5) * SQ, z: (r - 3.5) * SQ };
+}
+
+function worldSq(x, z) {
+  return { f: Math.round(x / SQ + 3.5), r: Math.round(z / SQ + 3.5) };
+}
+
+function pieceAt(f, r) {
+  if (f < 0 || r < 0 || f > 7 || r > 7) return null;
+  return board[r][f];
+}
+
+function makePiece(t, c, f, r) {
+  var p = { t: t, c: c, f: f, r: r, id: nextId++, yaw: c === 0 ? 0 : Math.PI, vx: 0, vz: 0, y: 0, walk: 0, squash: 1, dead: 0, lean: 0, spin: 0 };
+  var w = sqWorld(f, r);
+  p.x = w.x; p.z = w.z;
+  return p;
+}
+
+function setupBoard() {
+  var r, f, back = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
+  board = [];
+  nextId = 1;
+  for (r = 0; r < 8; r++) {
+    board[r] = [];
+    for (f = 0; f < 8; f++) board[r][f] = null;
+  }
+  for (f = 0; f < 8; f++) {
+    board[0][f] = makePiece(back[f], 0, f, 0);
+    board[1][f] = makePiece('p', 0, f, 1);
+    board[6][f] = makePiece('p', 1, f, 6);
+    board[7][f] = makePiece(back[f], 1, f, 7);
+  }
+  turn = 0;
+  castle = { 0: { k: 1, q: 1 }, 1: { k: 1, q: 1 } };
+  ep = null;
+  selected = null;
+  legal = [];
+  hover = null;
+  anims = [];
+  fallen = [];
+  over = null;
+  lastMove = null;
+  checkPulse = 0;
+  wantFocus.x = 0; wantFocus.z = 0;
+  lastGambit = '';
+  uciMoves = [];
+  gameToken++;
+  sparks = [];
+  screenFx = null;
+  hintMove = null;
+  hintKey = '';
+  applySideCam();
+}
+
+function cloneState() {
+  var r, f, nb = [];
+  for (r = 0; r < 8; r++) {
+    nb[r] = [];
+    for (f = 0; f < 8; f++) {
+      var p = board[r][f];
+      nb[r][f] = p ? { t: p.t, c: p.c, id: p.id } : null;
+    }
+  }
+  return {
+    board: nb,
+    turn: turn,
+    castle: { 0: { k: castle[0].k, q: castle[0].q }, 1: { k: castle[1].k, q: castle[1].q } },
+    ep: ep ? { f: ep.f, r: ep.r } : null
+  };
+}
+
+function kingSq(b, color) {
+  var r, f;
+  for (r = 0; r < 8; r++) for (f = 0; f < 8; f++) {
+    if (b[r][f] && b[r][f].t === 'k' && b[r][f].c === color) return { f: f, r: r };
+  }
+  return null;
+}
+
+function slideHits(b, f, r, df, dr, color, acc) {
+  var i, nf = f + df, nr = r + dr, q;
+  for (i = 0; i < 8; i++) {
+    if (nf < 0 || nr < 0 || nf > 7 || nr > 7) return;
+    q = b[nr][nf];
+    if (!q) acc.push({ f: nf, r: nr });
+    else {
+      if (q.c !== color) acc.push({ f: nf, r: nr, cap: 1 });
+      return;
+    }
+    nf += df; nr += dr;
+  }
+}
+
+function squareAttacked(b, f, r, by) {
+  var df, dr, nf, nr, i, q, kn = [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]];
+  var dirsB = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+  var dirsR = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  var pr = r - (by === 0 ? 1 : -1);
+  if (pr >= 0 && pr < 8) {
+    if (f > 0) {
+      q = b[pr][f - 1];
+      if (q && q.c === by && q.t === 'p') return true;
+    }
+    if (f < 7) {
+      q = b[pr][f + 1];
+      if (q && q.c === by && q.t === 'p') return true;
+    }
+  }
+  for (i = 0; i < 8; i++) {
+    nf = f + kn[i][0]; nr = r + kn[i][1];
+    if (nf < 0 || nr < 0 || nf > 7 || nr > 7) continue;
+    q = b[nr][nf];
+    if (q && q.c === by && q.t === 'n') return true;
+  }
+  for (i = 0; i < 4; i++) {
+    nf = f + dirsB[i][0]; nr = r + dirsB[i][1];
+    while (nf >= 0 && nr >= 0 && nf < 8 && nr < 8) {
+      q = b[nr][nf];
+      if (q) { if (q.c === by && (q.t === 'b' || q.t === 'q')) return true; break; }
+      nf += dirsB[i][0]; nr += dirsB[i][1];
+    }
+  }
+  for (i = 0; i < 4; i++) {
+    nf = f + dirsR[i][0]; nr = r + dirsR[i][1];
+    while (nf >= 0 && nr >= 0 && nf < 8 && nr < 8) {
+      q = b[nr][nf];
+      if (q) { if (q.c === by && (q.t === 'r' || q.t === 'q')) return true; break; }
+      nf += dirsR[i][0]; nr += dirsR[i][1];
+    }
+  }
+  for (dr = -1; dr <= 1; dr++) for (df = -1; df <= 1; df++) {
+    if (!df && !dr) continue;
+    nf = f + df; nr = r + dr;
+    if (nf < 0 || nr < 0 || nf > 7 || nr > 7) continue;
+    q = b[nr][nf];
+    if (q && q.c === by && q.t === 'k') return true;
+  }
+  return false;
+}
+
+function inCheck(b, color) {
+  var k = kingSq(b, color);
+  if (!k) return true;
+  return squareAttacked(b, k.f, k.r, 1 - color);
+}
+
+function pseudoMoves(b, color, cst, epSq) {
+  var r, f, p, acc, dir, start, nf, nr, i, q;
+  var moves = [];
+  var kn = [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]];
+  var dirsB = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+  var dirsR = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  function add(ff, rr, extra) {
+    var m = { f0: f, r0: r, f1: ff, r1: rr };
+    if (extra) { for (var k in extra) m[k] = extra[k]; }
+    moves.push(m);
+  }
+  for (r = 0; r < 8; r++) for (f = 0; f < 8; f++) {
+    p = b[r][f];
+    if (!p || p.c !== color) continue;
+    if (p.t === 'p') {
+      dir = color === 0 ? 1 : -1;
+      start = color === 0 ? 1 : 6;
+      nr = r + dir;
+      if (nr >= 0 && nr < 8 && !b[nr][f]) {
+        if (nr === 0 || nr === 7) add(f, nr, { promo: 'q' });
+        else add(f, nr);
+        if (r === start && !b[r + dir * 2][f]) add(f, r + dir * 2, { dpush: 1 });
+      }
+      if (f > 0 && nr >= 0 && nr < 8 && b[nr][f - 1] && b[nr][f - 1].c !== color) {
+        add(f - 1, nr, nr === 0 || nr === 7 ? { promo: 'q' } : null);
+      }
+      if (f < 7 && nr >= 0 && nr < 8 && b[nr][f + 1] && b[nr][f + 1].c !== color) {
+        add(f + 1, nr, nr === 0 || nr === 7 ? { promo: 'q' } : null);
+      }
+      if (epSq && nr === epSq.r && Math.abs(epSq.f - f) === 1) add(epSq.f, epSq.r, { ep: 1 });
+    } else if (p.t === 'n') {
+      for (i = 0; i < 8; i++) {
+        nf = f + kn[i][0]; nr = r + kn[i][1];
+        if (nf < 0 || nr < 0 || nf > 7 || nr > 7) continue;
+        q = b[nr][nf];
+        if (!q || q.c !== color) add(nf, nr);
+      }
+    } else if (p.t === 'b' || p.t === 'q') {
+      acc = [];
+      for (i = 0; i < 4; i++) slideHits(b, f, r, dirsB[i][0], dirsB[i][1], color, acc);
+      for (i = 0; i < acc.length; i++) add(acc[i].f, acc[i].r);
+      if (p.t === 'b') continue;
+    }
+    if (p.t === 'r' || p.t === 'q') {
+      acc = [];
+      for (i = 0; i < 4; i++) slideHits(b, f, r, dirsR[i][0], dirsR[i][1], color, acc);
+      for (i = 0; i < acc.length; i++) add(acc[i].f, acc[i].r);
+    }
+    if (p.t === 'k') {
+      for (nr = r - 1; nr <= r + 1; nr++) for (nf = f - 1; nf <= f + 1; nf++) {
+        if (nf < 0 || nr < 0 || nf > 7 || nr > 7 || (nf === f && nr === r)) continue;
+        q = b[nr][nf];
+        if (!q || q.c !== color) add(nf, nr);
+      }
+      if (cst[color].k && !b[r][5] && !b[r][6] && b[r][7] && b[r][7].t === 'r') add(6, r, { castle: 'k' });
+      if (cst[color].q && !b[r][1] && !b[r][2] && !b[r][3] && b[r][0] && b[r][0].t === 'r') add(2, r, { castle: 'q' });
+    }
+  }
+  return moves;
+}
+
+function applyOn(b, cst, epSq, m) {
+  var p = b[m.r0][m.f0];
+  var cap = b[m.r1][m.f1];
+  var nc = { 0: { k: cst[0].k, q: cst[0].q }, 1: { k: cst[1].k, q: cst[1].q } };
+  var nep = null;
+  if (m.ep) {
+    cap = b[m.r0][m.f1];
+    b[m.r0][m.f1] = null;
+  }
+  b[m.r1][m.f1] = p;
+  b[m.r0][m.f0] = null;
+  if (p) {
+    p.f = m.f1; p.r = m.r1;
+    if (m.promo) p.t = m.promo;
+    if (p.t === 'k') { nc[p.c].k = 0; nc[p.c].q = 0; }
+    if (p.t === 'r') {
+      if (m.f0 === 0) nc[p.c].q = 0;
+      if (m.f0 === 7) nc[p.c].k = 0;
+    }
+  }
+  if (m.castle === 'k') {
+    b[m.r1][5] = b[m.r1][7];
+    b[m.r1][7] = null;
+    if (b[m.r1][5]) { b[m.r1][5].f = 5; }
+  }
+  if (m.castle === 'q') {
+    b[m.r1][3] = b[m.r1][0];
+    b[m.r1][0] = null;
+    if (b[m.r1][3]) { b[m.r1][3].f = 3; }
+  }
+  if (m.dpush) nep = { f: m.f0, r: (m.r0 + m.r1) / 2 };
+  return { cap: cap, castle: nc, ep: nep };
+}
+
+function legalMovesFor(b, color, cst, epSq) {
+  var raw = pseudoMoves(b, color, cst, epSq);
+  var out = [], i, m, nb, r, f, snap = [];
+  for (r = 0; r < 8; r++) {
+    snap[r] = [];
+    for (f = 0; f < 8; f++) {
+      var p = b[r][f];
+      snap[r][f] = p ? { t: p.t, c: p.c, f: p.f, r: p.r } : null;
+    }
+  }
+  for (i = 0; i < raw.length; i++) {
+    m = raw[i];
+    nb = [];
+    for (r = 0; r < 8; r++) {
+      nb[r] = [];
+      for (f = 0; f < 8; f++) {
+        var q = snap[r][f];
+        nb[r][f] = q ? { t: q.t, c: q.c, f: q.f, r: q.r } : null;
+      }
+    }
+    if (m.castle === 'k') {
+      if (inCheck(nb, color) || squareAttacked(nb, 5, m.r0, 1 - color) || squareAttacked(nb, 4, m.r0, 1 - color)) continue;
+    }
+    if (m.castle === 'q') {
+      if (inCheck(nb, color) || squareAttacked(nb, 3, m.r0, 1 - color) || squareAttacked(nb, 4, m.r0, 1 - color)) continue;
+    }
+    applyOn(nb, { 0: { k: 1, q: 1 }, 1: { k: 1, q: 1 } }, null, {
+      f0: m.f0, r0: m.r0, f1: m.f1, r1: m.r1, ep: m.ep, castle: m.castle, promo: m.promo, dpush: m.dpush
+    });
+    if (!inCheck(nb, color)) out.push(m);
+  }
+  return out;
+}
+
+function allLegal() {
+  return legalMovesFor(board, turn, castle, ep);
+}
+
+var VAL = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
+var PST = {
+  p: [0,0,0,0,0,0,0,0, 8,8,8,8,8,8,8,8, 6,6,10,16,16,10,6,6, 4,4,8,18,18,8,4,4, 2,2,6,14,14,6,2,2, 2,4,4,6,6,4,4,2, 4,4,4,0,0,4,4,4, 0,0,0,0,0,0,0,0],
+  n: [-20,-8,-6,-6,-6,-6,-8,-20, -8,-2,2,3,3,2,-2,-8, -6,3,6,8,8,6,3,-6, -6,4,8,10,10,8,4,-6, -6,3,8,10,10,8,3,-6, -6,4,6,8,8,6,4,-6, -8,-2,2,4,4,2,-2,-8, -20,-8,-6,-6,-6,-6,-8,-20],
+  b: [-8,-4,-4,-4,-4,-4,-4,-8, -4,2,0,0,0,0,2,-4, -4,4,6,6,6,6,4,-4, -4,2,6,8,8,6,2,-4, -4,4,6,8,8,6,4,-4, -4,2,6,6,6,6,2,-4, -4,2,2,2,2,2,2,-4, -8,-4,-4,-4,-4,-4,-4,-8],
+  r: [0,0,2,4,4,2,0,0, 0,2,4,6,6,4,2,0, 0,0,2,2,2,2,0,0, 0,0,2,2,2,2,0,0, 0,0,2,2,2,2,0,0, 0,0,2,2,2,2,0,0, 6,8,8,8,8,8,8,6, 2,2,2,2,2,2,2,2],
+  q: [-8,-4,-4,-2,-2,-4,-4,-8, -4,0,0,0,0,0,0,-4, -4,0,2,2,2,2,0,-4, -2,0,2,3,3,2,0,-2, -2,0,2,3,3,2,0,-2, -4,0,2,2,2,2,0,-4, -4,0,0,0,0,0,0,-4, -8,-4,-4,-2,-2,-4,-4,-8],
+  k: [8,12,6,0,0,6,12,8, 8,8,0,-8,-8,0,8,8, -8,-12,-12,-16,-16,-12,-12,-8, -16,-20,-20,-24,-24,-20,-20,-16, -20,-24,-24,-28,-28,-24,-24,-20, -16,-20,-20,-24,-24,-20,-20,-16, -8,-12,-12,-16,-16,-12,-12,-8, 8,12,6,0,0,6,12,8]
+};
+
+function aiProfile() {
+  var e = aiElo;
+  if (e < 400) e = 400;
+  if (e > 2200) e = 2200;
+  var depth = 1;
+  if (e >= 850) depth = 2;
+  if (e >= 1550) depth = 3;
+  var skill = (e - 400) / 1800;
+  if (skill < 0) skill = 0;
+  if (skill > 1) skill = 1;
+  return {
+    depth: depth,
+    noise: Math.max(2, (1900 - e) * 0.38),
+    blunder: e < 600 ? 0.82 : Math.max(0, Math.min(0.7, (1450 - e) / 1450)),
+    think: 0.12 + skill * 0.55,
+    skill: skill
+  };
+}
+
+function copyBoard(src) {
+  var c = [], r, f, p;
+  for (r = 0; r < 8; r++) {
+    c[r] = [];
+    for (f = 0; f < 8; f++) {
+      p = src[r][f];
+      c[r][f] = p ? { t: p.t, c: p.c, f: p.f, r: p.r } : null;
+    }
+  }
+  return c;
+}
+
+function pstAt(t, c, f, r) {
+  var tab = PST[t];
+  if (!tab) return 0;
+  return tab[c === 0 ? r * 8 + f : (7 - r) * 8 + f];
+}
+
+function evalBoard(b, color) {
+  if (engineMode === 'gambit') return evalGambit(b, color);
+  var s = 0, r, f, p, center, w = 0.25 + aiProfile().skill * 0.9;
+  for (r = 0; r < 8; r++) for (f = 0; f < 8; f++) {
+    p = b[r][f];
+    if (!p) continue;
+    center = (3.5 - Math.abs(f - 3.5)) + (3.5 - Math.abs(r - 3.5));
+    s += (p.c === color ? 1 : -1) * (VAL[p.t] + center * 3 + pstAt(p.t, p.c, f, r) * w);
+  }
+  if (inCheck(b, 1 - color)) s += 35 + 20 * w;
+  if (inCheck(b, color)) s -= 50 + 25 * w;
+  return s;
+}
+
+function orderMoves(b, moves) {
+  moves.sort(function (a, c) {
+    var ca = a.ep || (b[a.r1] && b[a.r1][a.f1]) ? 1 : 0;
+    var cb = c.ep || (b[c.r1] && b[c.r1][c.f1]) ? 1 : 0;
+    return cb - ca;
+  });
+  return moves;
+}
+
+function minimax(b, color, cst, epSq, depth, alpha, beta, rootColor) {
+  var moves = legalMovesFor(b, color, cst, epSq);
+  var i, nb, res, s, best;
+  if (!moves.length) {
+    if (inCheck(b, color)) return color === rootColor ? -11000 - depth : 11000 + depth;
+    return 0;
+  }
+  if (depth <= 0) return evalBoard(b, rootColor);
+  orderMoves(b, moves);
+  if (color === rootColor) {
+    best = -1e9;
+    for (i = 0; i < moves.length; i++) {
+      nb = copyBoard(b);
+      res = applyOn(nb, cst, epSq, moves[i]);
+      s = minimax(nb, 1 - color, res.castle, res.ep, depth - 1, alpha, beta, rootColor);
+      if (s > best) best = s;
+      if (s > alpha) alpha = s;
+      if (alpha >= beta) break;
+    }
+  } else {
+    best = 1e9;
+    for (i = 0; i < moves.length; i++) {
+      nb = copyBoard(b);
+      res = applyOn(nb, cst, epSq, moves[i]);
+      s = minimax(nb, 1 - color, res.castle, res.ep, depth - 1, alpha, beta, rootColor);
+      if (s < best) best = s;
+      if (s < beta) beta = s;
+      if (alpha >= beta) break;
+    }
+  }
+  return best;
+}
+
+function sqName(f, r) {
+  return 'abcdefgh'.charAt(f) + (r + 1);
+}
+
+function moveToUci(m) {
+  var u = sqName(m.f0, m.r0) + sqName(m.f1, m.r1);
+  if (m.promo) u += m.promo;
+  return u;
+}
+
+function uciToMove(uci) {
+  var f0 = uci.charCodeAt(0) - 97;
+  var r0 = (+uci.charAt(1)) - 1;
+  var f1 = uci.charCodeAt(2) - 97;
+  var r1 = (+uci.charAt(3)) - 1;
+  var promo = uci.length > 4 ? uci.charAt(4) : null;
+  var moves = allLegal(), i, m;
+  for (i = 0; i < moves.length; i++) {
+    m = moves[i];
+    if (m.f0 === f0 && m.r0 === r0 && m.f1 === f1 && m.r1 === r1) {
+      if (promo) m.promo = promo;
+      return m;
+    }
+  }
+  return null;
+}
+
+function updateSfStat() {
+  if (!sfStat) return;
+  var hint = aiElo >= 2200 ? ' · best-move hint on' : '';
+  if (engineMode === 'gambit') {
+    sfStat.textContent = (lastGambit ? ('gambit · ' + lastGambit) : 'gambit engine · will sacrifice for the attack') + hint;
+  } else {
+    sfStat.textContent = 'house engine · positional' + hint;
+  }
+}
+
+function requestAiMove() {
+  if (over || turn !== aiColor) return;
+  if (engineMode === 'gambit') {
+    var book = bookReply();
+    if (book) {
+      playMove(book);
+      return;
+    }
+  }
+  var pack = bestAIMove();
+  if (pack && pack.m) playMove(pack.m, pack.kind || '');
+}
+
+function sideMat(b, color) {
+  var s = 0, r, f, p;
+  for (r = 0; r < 8; r++) for (f = 0; f < 8; f++) {
+    p = b[r][f];
+    if (p && p.c === color) s += VAL[p.t];
+  }
+  return s;
+}
+
+function classifyMove(before, m, after, s, bestS, secondS) {
+  var ply = uciMoves.length;
+  var mover = before[m.r0][m.f0];
+  var cap = m.ep ? { t: 'p' } : before[m.r1][m.f1];
+  if (!mover || m.castle) return { kind: '', style: 0, sac: 0 };
+  var swing = (sideMat(after, turn) - sideMat(after, 1 - turn)) - (sideMat(before, turn) - sideMat(before, 1 - turn));
+  var destHit = squareAttacked(after, m.f1, m.r1, 1 - turn);
+  var check = inCheck(after, 1 - turn);
+  var gap = bestS - s;
+  var unique = s - secondS >= 45;
+  var nearBest = gap <= 16;
+  var pieceSac = mover.t !== 'p' && swing <= -180 && destHit;
+  var wonPiece = swing >= 280;
+  var kind = '';
+  if (pieceSac && nearBest && unique && ply >= 4) kind = 'brilliant';
+  else if (s > 9000 && pieceSac && nearBest) kind = 'brilliant';
+  else if (nearBest && unique && ply >= 6 && (wonPiece || (check && swing >= 0))) kind = 'great';
+  else if (s > 9000 && unique && ply >= 4 && !pieceSac) kind = 'great';
+  else if (s >= bestS && unique && ply >= 6 && gap <= 8) kind = 'best';
+  return { kind: kind, style: (pieceSac ? 200 : 0) + (unique ? 40 : 0), sac: pieceSac };
+}
+
+function sameMove(a, b) {
+  return a && b && a.f0 === b.f0 && a.r0 === b.r0 && a.f1 === b.f1 && a.r1 === b.r1 &&
+    !!a.ep === !!b.ep && (a.castle || '') === (b.castle || '') && (a.promo || '') === (b.promo || '');
+}
+
+function ratePlayedMove(m) {
+  var moves = allLegal();
+  var i, mv, nb, res, s, scored = [], bestS, secondS, mine = null;
+  if (!moves.length) return '';
+  orderMoves(board, moves);
+  for (i = 0; i < moves.length; i++) {
+    mv = moves[i];
+    nb = copyBoard(board);
+    res = applyOn(nb, castle, ep, mv);
+    s = minimax(nb, 1 - turn, res.castle, res.ep, 1, -1e9, 1e9, turn);
+    scored.push({ m: mv, s: s, after: nb });
+    if (sameMove(mv, m)) mine = scored[scored.length - 1];
+  }
+  scored.sort(function (a, b) { return b.s - a.s; });
+  bestS = scored[0].s;
+  secondS = scored.length > 1 ? scored[1].s : bestS - 80;
+  if (!mine) return '';
+  return classifyMove(board, m, mine.after, mine.s, bestS, mine.s >= bestS ? secondS : bestS).kind;
+}
+
+function bestAIMove() {
+  var prof = aiProfile();
+  var moves = allLegal();
+  var i, m, nb, res, s, scored = [], bestS, secondS, pick, cls;
+  if (!moves.length) return null;
+  if (prof.skill < 0.12 && Math.random() < 0.55) {
+    return { m: moves[(Math.random() * moves.length) | 0], kind: '' };
+  }
+  orderMoves(board, moves);
+  for (i = 0; i < moves.length; i++) {
+    m = moves[i];
+    nb = copyBoard(board);
+    res = applyOn(nb, castle, ep, m);
+    s = minimax(nb, 1 - turn, res.castle, res.ep, prof.depth - 1, -1e9, 1e9, turn);
+    if (aiElo < 900) s += (Math.random() - 0.5) * prof.noise * 2;
+    scored.push({ m: m, s: s, after: nb });
+  }
+  scored.sort(function (a, b) { return b.s - a.s; });
+  bestS = scored[0].s;
+  secondS = scored.length > 1 ? scored[1].s : bestS - 80;
+  for (i = 0; i < scored.length; i++) {
+    scored[i].cls = classifyMove(board, scored[i].m, scored[i].after, scored[i].s, bestS, i === 0 ? secondS : bestS);
+  }
+  pick = scored[0];
+  if ((engineMode === 'gambit' || aiElo >= 1600) && pick.cls.kind !== 'brilliant') {
+    for (i = 0; i < scored.length; i++) {
+      if (scored[i].cls.kind === 'brilliant' && scored[i].s >= bestS - 16) {
+        pick = scored[i];
+        break;
+      }
+    }
+  }
+  if (Math.random() < prof.blunder * 0.45 && scored.length > 2 && aiElo < 1600) {
+    pick = scored[1 + ((Math.random() * Math.min(3, scored.length - 1)) | 0)];
+    pick.cls = pick.cls || { kind: '' };
+    pick.cls.kind = '';
+  }
+  cls = pick.cls || { kind: '' };
+  return { m: pick.m, kind: cls.kind };
+}
+
+function isPlayerTurn() {
+  return !over && (!vsAI || turn !== aiColor);
+}
+
+function formatHint(m) {
+  var p = board[m.r0][m.f0];
+  if (!p) return moveToUci(m);
+  if (m.castle === 'k') return 'O-O';
+  if (m.castle === 'q') return 'O-O-O';
+  var L = { p: '', n: 'N', b: 'B', r: 'R', q: 'Q', k: 'K' };
+  var cap = m.ep || board[m.r1][m.f1];
+  var s = L[p.t] || '';
+  if (p.t === 'p' && cap) s = 'abcdefgh'.charAt(m.f0);
+  if (cap) s += 'x';
+  s += sqName(m.f1, m.r1);
+  if (m.promo) s += '=Q';
+  return s;
+}
+
+function findBestPlayerMove() {
+  var moves = allLegal();
+  var i, m, nb, res, s, best = null, bestS = -1e9;
+  if (!moves.length) return null;
+  orderMoves(board, moves);
+  for (i = 0; i < moves.length; i++) {
+    m = moves[i];
+    nb = copyBoard(board);
+    res = applyOn(nb, castle, ep, m);
+    s = minimax(nb, 1 - turn, res.castle, res.ep, 2, -1e9, 1e9, turn);
+    if (s > bestS) {
+      bestS = s;
+      best = m;
+    }
+  }
+  return best;
+}
+
+function refreshHint() {
+  if (aiElo < 2200 || !isPlayerTurn() || anims.length > 0 || !started) {
+    hintMove = null;
+    return;
+  }
+  var key = gameToken + '|' + turn + '|' + engineMode + '|' + uciMoves.join(',');
+  if (key === hintKey) return;
+  hintKey = key;
+  hintMove = findBestPlayerMove();
+}
+
+function setElo(n) {
+  n = Math.round(n / 50) * 50;
+  if (n < 400) n = 400;
+  if (n > 2200) n = 2200;
+  aiElo = n;
+  eloSlider.value = String(n);
+  eloNum.textContent = String(n);
+  var buttons = eloPresets.querySelectorAll('button');
+  for (var i = 0; i < buttons.length; i++) {
+    buttons[i].className = Number(buttons[i].getAttribute('data-elo')) === n ? 'on' : '';
+  }
+  hintKey = '';
+  if (aiElo < 2200) hintMove = null;
+  refreshSide();
+  updateSfStat();
+}
+
+function refreshSide() {
+  var prof = aiProfile();
+  if (!vsAI) {
+    sideEl.textContent = 'two players on this table';
+    aiTog.textContent = 'AI OFF · HOTSEAT';
+    aiTog.className = '';
+    return;
+  }
+  if (engineMode === 'gambit') {
+    sideEl.textContent = (lastGambit || 'GAMBIT ENGINE') + '  ·  ' + aiElo;
+    aiTog.textContent = 'AI ON · GAMBIT · ' + (aiColor === 0 ? 'WHITE' : 'BLACK');
+  } else {
+    sideEl.textContent = 'HOUSE  ·  ' + aiElo;
+    aiTog.textContent = 'AI ON · HOUSE · ' + (aiColor === 0 ? 'WHITE' : 'BLACK');
+  }
+  aiTog.className = 'on';
+  var engBtns = document.querySelectorAll('#engines button');
+  var i;
+  for (i = 0; i < engBtns.length; i++) {
+    engBtns[i].className = engBtns[i].getAttribute('data-eng') === engineMode ? 'on' : '';
+  }
+  var colBtns = document.querySelectorAll('#colors button');
+  for (i = 0; i < colBtns.length; i++) {
+    colBtns[i].className = Number(colBtns[i].getAttribute('data-color')) === aiColor ? 'on' : '';
+  }
+  updateSfStat();
+}
+
+var audioCtx = null;
+function beep(freq, dur, type) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    var o = audioCtx.createOscillator();
+    var g = audioCtx.createGain();
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0.035, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    o.connect(g);
+    g.connect(audioCtx.destination);
+    o.start();
+    o.stop(audioCtx.currentTime + dur);
+  } catch (e) {}
+}
+
+function fxColor(kind) {
+  if (kind === 'brilliant') return [36, 220, 230];
+  if (kind === 'great') return [70, 230, 110];
+  if (kind === 'best') return [255, 205, 70];
+  return [235, 64, 48];
+}
+
+function startScreenFx(kind) {
+  screenFx = { kind: kind, t: 0, dur: kind === 'brilliant' ? 0.55 : 0.38 };
+}
+
+function spawnSparks(x, y, z, n, col, speed) {
+  var i, a, sp;
+  for (i = 0; i < n; i++) {
+    a = Math.random() * Math.PI * 2;
+    sp = (0.5 + Math.random()) * (speed || 1.4);
+    sparks.push({
+      x: x, y: y, z: z,
+      vx: Math.sin(a) * sp,
+      vy: 1.4 + Math.random() * 2.4,
+      vz: Math.cos(a) * sp,
+      life: 0.32 + Math.random() * 0.38,
+      r: col[0], g: col[1], b: col[2],
+      s: 0.05 + Math.random() * 0.09
+    });
+  }
+}
+
+function updateSparks(dt) {
+  var i, s;
+  for (i = sparks.length - 1; i >= 0; i--) {
+    s = sparks[i];
+    s.life -= dt;
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    s.z += s.vz * dt;
+    s.vy -= 7 * dt;
+    if (s.life <= 0 || s.y < 0.04) sparks.splice(i, 1);
+  }
+  if (screenFx) {
+    screenFx.t += dt;
+    if (screenFx.t >= screenFx.dur) screenFx = null;
+  }
+}
+
+function addSparks() {
+  var i, s, fade;
+  for (i = 0; i < sparks.length; i++) {
+    s = sparks[i];
+    fade = Math.max(0.15, s.life * 2.2);
+    pushBox(0, 0, 0, s.s, s.s, s.s, 0, 0, s.x, s.y, s.z, s.r * fade, s.g * fade, s.b * fade);
+  }
+}
+
+function easeOutCubic(u) { return 1 - Math.pow(1 - u, 3); }
+function easeInCubic(u) { return u * u * u; }
+function easeInOut(u) { return u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; }
+
+function poseFromAnim(a, u) {
+  var pt = a.p.t, fx = a.fx || '';
+  var k = easeOutCubic(u);
+  var lift = Math.sin(u * Math.PI) * (a.kind === 'hop' || pt === 'n' ? 1.35 : 0.28);
+  var lean = 0, spin = 0, squash = 1 + Math.sin(u * Math.PI) * 0.08;
+  var yawWob = Math.sin(u * Math.PI * 3) * 0.18;
+  if (!fx) return { k: k, lift: lift, lean: lean, spin: spin, squash: squash, yawWob: yawWob };
+  if (fx === 'kill') {
+    if (pt === 'p') {
+      k = u < 0.4 ? easeInCubic(u / 0.4) * 0.22 : 0.22 + easeOutCubic((u - 0.4) / 0.6) * 0.78;
+      lift = u < 0.4 ? 0.08 : Math.sin((u - 0.4) * Math.PI / 0.6) * 0.72;
+      lean = (u < 0.55 ? u : 1 - u) * 1.15;
+      squash = u > 0.8 ? 0.55 + (u - 0.8) * 2 : 1.14;
+      yawWob = 0;
+    } else if (pt === 'n') {
+      if (u < 0.28) {
+        k = 0.03 * (u / 0.28);
+        lift = 0.05;
+        lean = -0.32 * (u / 0.28);
+        squash = 0.76;
+      } else if (u < 0.74) {
+        var nt = (u - 0.28) / 0.46;
+        k = 0.03 + easeInCubic(nt) * 0.86;
+        lift = Math.sin(nt * Math.PI) * 0.78;
+        lean = -0.32 + nt * 0.92;
+        squash = 0.86 + Math.sin(nt * Math.PI) * 0.1;
+      } else {
+        var ns = (u - 0.74) / 0.26;
+        k = 0.89 + easeOutCubic(ns) * 0.11;
+        lift = (1 - ns) * 0.1;
+        lean = 0.6 * (1 - ns);
+        squash = 0.58 + ns * 0.4;
+      }
+      spin = 0;
+      yawWob = 0;
+    } else if (pt === 'b') {
+      k = easeInOut(u);
+      lift = Math.sin(u * Math.PI) * 0.58;
+      lean = Math.sin(u * Math.PI) * 0.88;
+      spin = Math.sin(u * Math.PI) * 0.55;
+    } else if (pt === 'r') {
+      k = u < 0.6 ? Math.pow(u / 0.6, 3) * 0.12 : 0.12 + Math.pow((u - 0.6) / 0.4, 0.45) * 0.88;
+      lift = u > 0.62 && u < 0.85 ? 0.32 : 0.04;
+      squash = u > 0.82 ? 0.56 : 1.18;
+      lean = u < 0.6 ? 0.22 : -0.16;
+      yawWob = 0;
+    } else if (pt === 'q') {
+      k = 0.5 - 0.5 * Math.cos(u * Math.PI);
+      lift = Math.sin(u * Math.PI) * 1.28;
+      spin = u * Math.PI * 1.75;
+      lean = Math.sin(u * Math.PI * 2) * 0.26;
+    } else {
+      k = easeInCubic(u);
+      lift = u < 0.55 ? u * 0.25 : Math.sin((u - 0.55) * Math.PI / 0.45) * 0.88;
+      squash = u > 0.78 ? 0.68 : 1.12;
+      lean = (0.5 - u) * 0.42;
+    }
+  } else if (fx === 'brilliant') {
+    if (pt === 'p') {
+      k = easeInOut(u);
+      lift = Math.sin(u * Math.PI) * 1.62;
+      spin = u * Math.PI * 2;
+      squash = 0.7 + Math.sin(u * Math.PI) * 0.45;
+    } else if (pt === 'n') {
+      k = u * u * (3 - 2 * u);
+      lift = Math.sin(u * Math.PI) * 2.45;
+      spin = u * Math.PI * 3;
+      lean = Math.sin(u * Math.PI * 3) * 0.5;
+    } else if (pt === 'b') {
+      k = u;
+      lift = 0.28 + Math.sin(u * Math.PI) * 1.42;
+      spin = u * Math.PI * 2.5;
+      lean = 0.42;
+    } else if (pt === 'r') {
+      k = u < 0.35 ? 0 : Math.pow((u - 0.35) / 0.65, 2);
+      lift = u < 0.4 ? u * 2.15 : (1 - u) * 1.45 + 0.18;
+      squash = u < 0.4 ? 0.74 : (u > 0.85 ? 0.58 : 1);
+      spin = u < 0.4 ? 0 : (u - 0.4) * 0.45;
+    } else if (pt === 'q') {
+      k = easeInOut(u);
+      lift = Math.sin(u * Math.PI) * 1.85;
+      spin = u * Math.PI * 4;
+      squash = 0.8 + Math.abs(Math.sin(u * Math.PI * 2)) * 0.3;
+    } else {
+      k = easeOutCubic(u);
+      lift = Math.sin(u * Math.PI) * 1.12;
+      spin = u * Math.PI * 2;
+      squash = 1.16;
+    }
+    yawWob = 0;
+  } else if (fx === 'great') {
+    if (pt === 'p') {
+      k = u < 0.5 ? easeInCubic(u * 2) * 0.45 : 0.45 + easeOutCubic((u - 0.5) * 2) * 0.55;
+      lift = u < 0.5 ? Math.sin(u * Math.PI) * 0.25 : Math.sin((u - 0.5) * Math.PI) * 0.92;
+      lean = u < 0.5 ? 0.52 : -0.22;
+    } else if (pt === 'n') {
+      k = u < 0.48 ? easeOutCubic(u / 0.48) * 0.48 : 0.48 + easeInOut((u - 0.48) / 0.52) * 0.52;
+      lift = u < 0.48 ? Math.sin(u / 0.48 * Math.PI) * 1.12 : Math.sin((u - 0.48) / 0.52 * Math.PI) * 1.62;
+      spin = u * Math.PI * 1.2;
+    } else if (pt === 'b') {
+      k = easeInOut(u);
+      lift = Math.sin(u * Math.PI) * 0.72;
+      lean = Math.sin(u * Math.PI * 2) * 0.62;
+      spin = Math.sin(u * Math.PI) * 0.82;
+    } else if (pt === 'r') {
+      k = easeInCubic(u);
+      lift = Math.sin(u * Math.PI) * 0.42;
+      squash = 1.2 - u * 0.28;
+      lean = Math.sin(u * Math.PI) * 0.22;
+    } else if (pt === 'q') {
+      k = easeOutCubic(u);
+      lift = Math.sin(u * Math.PI) * 1.16;
+      spin = Math.sin(u * Math.PI) * 1.42;
+      lean = Math.sin(u * Math.PI * 2) * 0.3;
+    } else {
+      k = easeInOut(u);
+      lift = Math.sin(u * Math.PI) * 0.66;
+      squash = 1 + Math.sin(u * Math.PI) * 0.22;
+    }
+    yawWob = Math.sin(u * Math.PI) * 0.1;
+  } else if (fx === 'best') {
+    if (pt === 'p') {
+      k = easeOutCubic(u);
+      lift = Math.sin(u * Math.PI) * 0.88;
+      squash = 1 + Math.sin(u * Math.PI) * 0.24;
+    } else if (pt === 'n') {
+      k = easeInOut(u);
+      lift = Math.sin(u * Math.PI) * 1.72;
+      lean = Math.sin(u * Math.PI) * 0.46;
+    } else if (pt === 'b') {
+      k = easeOutCubic(u);
+      lift = Math.sin(u * Math.PI) * 0.52;
+      lean = Math.sin(u * Math.PI) * 0.36;
+      spin = u * 0.62;
+    } else if (pt === 'r') {
+      k = easeInOut(u);
+      lift = Math.sin(u * Math.PI) * 0.36;
+      squash = 1.1;
+    } else if (pt === 'q') {
+      k = easeOutCubic(u);
+      lift = Math.sin(u * Math.PI) * 0.96;
+      spin = u * Math.PI;
+    } else {
+      k = easeInOut(u);
+      lift = Math.sin(u * Math.PI) * 0.42;
+    }
+    yawWob = Math.sin(u * Math.PI) * 0.12;
+  }
+  return { k: k, lift: lift, lean: lean, spin: spin, squash: squash, yawWob: yawWob };
+}
+
+function addMoveFx(p, a) {
+  if (!a || a.t < 0 || !a.fx) return;
+  var u = Math.max(0, Math.min(1, a.t / a.dur));
+  var col = fxColor(a.fx);
+  var fade = u < 0.12 ? u / 0.12 : (u > 0.8 ? Math.max(0, (1 - u) / 0.2) : 1);
+  if (fade < 0.05) return;
+  var i, ang, rr, h, x = p.x, z = p.z, y = p.y, pt = p.t;
+  var cr = col[0] * fade, cg = col[1] * fade, cb = col[2] * fade;
+  for (i = 0; i < 8; i++) {
+    ang = i * 0.785 + time * (a.fx === 'brilliant' ? 8 : a.fx === 'kill' ? 5 : 3);
+    rr = 0.32 + u * (a.fx === 'kill' ? 0.7 : 0.42);
+    pushBox(0, 0.08, 0, 0.07, 0.035, 0.15, 0, ang, x + Math.sin(ang) * rr, 0, z + Math.cos(ang) * rr, cr, cg, cb);
+  }
+  if (pt === 'p') {
+    for (i = 0; i < 5; i++) {
+      h = 0.18 + i * 0.12 + u * 0.35;
+      pushBox(0, h, 0.16 + i * 0.05, 0.045, 0.14, 0.045, 0.55, p.yaw, x, y, z, cr, cg, cb);
+    }
+  } else if (pt === 'n') {
+    if (a.fx === 'kill') {
+      var strike = u > 0.58 ? Math.min(1, (u - 0.58) / 0.22) : 0;
+      if (strike > 0) {
+        pushBox(0, 0.16, 0.2, 0.09, 0.05, 0.38 * strike, 0.12, p.yaw, x, 0, z, cr, cg, cb);
+        rr = 0.18 + strike * 0.5;
+        pushBox(0, 0.06, 0, rr, 0.035, rr, 0, 0, x, 0, z, cr * 0.75, cg * 0.75, cb * 0.75);
+      }
+    } else {
+      for (i = 0; i < 6; i++) {
+        ang = p.yaw + i * 0.42 - 1.05 + u * 1.2;
+        pushBox(0, 0.48 + Math.sin(u * Math.PI) * 0.5, 0, 0.07, 0.05, 0.3, 0.55, ang, x, y, z, cr, cg, cb);
+      }
+    }
+  } else if (pt === 'b') {
+    h = 0.25 + u * 1.55;
+    pushBox(0, h * 0.5, 0, 0.055, h, 0.055, 0.72, p.yaw + 0.785, x, 0, z, cr, cg, cb);
+    pushBox(0, h * 0.5, 0, 0.055, h, 0.055, 0.72, p.yaw - 0.785, x, 0, z, cr * 0.8, cg * 0.8, cb * 0.8);
+  } else if (pt === 'r') {
+    rr = 0.22 + u * 1.05;
+    pushBox(0, 0.07, 0, rr, 0.045, rr, 0, 0, x, 0, z, cr * 0.85, cg * 0.85, cb * 0.85);
+    pushBox(0, 0.12, 0, rr * 0.7, 0.03, 0.08, 0, 0, x, 0, z, cr, cg, cb);
+    pushBox(0, 0.12, 0, 0.08, 0.03, rr * 0.7, 0, 0, x, 0, z, cr, cg, cb);
+  } else if (pt === 'q') {
+    for (i = 0; i < 8; i++) {
+      ang = i * 0.785 + u * 6.2;
+      h = 0.55 + Math.sin(u * Math.PI) * 0.85;
+      pushBox(0, h, 0, 0.065, 0.065, 0.24, 0, ang, x + Math.sin(ang) * 0.28, y, z + Math.cos(ang) * 0.28, cr, cg, cb);
+    }
+  } else {
+    h = 0.45 + u * 1.15;
+    pushBox(0, h * 0.5, 0, 0.08, h, 0.08, 0, 0, x, 0, z, cr, cg, cb);
+    pushBox(0, h + 0.08, 0, 0.32, 0.08, 0.08, 0, 0, x, 0, z, cr, cg, cb);
+    pushBox(0, 0.1, 0, 0.18 + u * 0.5, 0.04, 0.18 + u * 0.5, 0, u * 2, x, 0, z, cr, cg, cb);
+  }
+}
+
+function animFor(p) {
+  var i;
+  for (i = 0; i < anims.length; i++) if (anims[i].p === p) return anims[i];
+  return null;
+}
+
+function startAnim(piece, f1, r1, kind, delay, fx) {
+  var w = sqWorld(f1, r1);
+  var dur = 0.42;
+  if (fx === 'brilliant') dur = 1.05;
+  else if (fx === 'great') dur = 0.88;
+  else if (fx === 'best') dur = 0.72;
+  else if (fx === 'kill') dur = 0.78;
+  else if (kind === 'hop') dur = 0.58;
+  else if (kind === 'castle') dur = 0.5;
+  anims.push({
+    p: piece,
+    x0: piece.x, z0: piece.z, y0: piece.y,
+    x1: w.x, z1: w.z,
+    t: -(delay || 0),
+    dur: dur,
+    kind: kind || 'walk',
+    fx: fx || '',
+    burst: 0
+  });
+  piece.yaw = Math.atan2(w.x - piece.x, w.z - piece.z);
+}
+
+function fallPiece(p, dx, dz, hard) {
+  if (!p) return;
+  var len = Math.sqrt(dx * dx + dz * dz) || 1;
+  fallen.push({
+    p: p, x: p.x, z: p.z, y: 0.2, rot: 0,
+    spin: (Math.random() - 0.5) * (hard ? 6 : 2.2),
+    vx: (dx / len) * (hard ? 3.4 : 1.3),
+    vz: (dz / len) * (hard ? 3.4 : 1.3),
+    life: hard ? 1.05 : 0.7,
+    yaw: p.yaw
+  });
+}
+
+function playMove(m, givenKind) {
+  var p = board[m.r0][m.f0];
+  var cap = board[m.r1][m.f1];
+  var rook, w, kind;
+  if (!p) return;
+  if (m.ep) cap = board[m.r0][m.f1];
+  kind = givenKind;
+  if (kind === undefined) kind = ratePlayedMove(m) || '';
+  if (cap && !kind) kind = 'kill';
+  uciMoves.push(moveToUci(m));
+  if (cap) {
+    fallPiece(cap, m.f1 - m.f0, m.r1 - m.r0, !!kind);
+    beep(kind === 'kill' || kind === 'brilliant' ? 150 : 180, 0.14, 'triangle');
+  } else {
+    beep(kind === 'brilliant' ? 760 : kind === 'great' ? 640 : kind === 'best' ? 540 : 420, 0.07, 'sine');
+  }
+  if (kind) {
+    startScreenFx(kind);
+    beep(kind === 'brilliant' ? 920 : kind === 'great' ? 780 : kind === 'best' ? 660 : 240, 0.12, kind === 'kill' ? 'sawtooth' : 'square');
+  }
+  if (cap && kind && kind !== 'kill') spawnSparks(cap.x, 0.4, cap.z, 10, fxColor('kill'), 1.9);
+  startAnim(p, m.f1, m.r1, p.t === 'n' ? 'hop' : 'walk', 0, kind);
+  if (m.castle === 'k') {
+    rook = board[m.r0][7];
+    if (rook) startAnim(rook, 5, m.r0, 'castle', 0.08, '');
+  }
+  if (m.castle === 'q') {
+    rook = board[m.r0][0];
+    if (rook) startAnim(rook, 3, m.r0, 'castle', 0.08, '');
+  }
+  applyOn(board, castle, ep, m);
+  castle = { 0: { k: castle[0].k, q: castle[0].q }, 1: { k: castle[1].k, q: castle[1].q } };
+  if (p.t === 'k') { castle[p.c].k = 0; castle[p.c].q = 0; }
+  if (p.t === 'r') {
+    if (m.f0 === 0) castle[p.c].q = 0;
+    if (m.f0 === 7) castle[p.c].k = 0;
+  }
+  if (cap && cap.t === 'r') {
+    if (m.f1 === 0) castle[cap.c].q = 0;
+    if (m.f1 === 7) castle[cap.c].k = 0;
+  }
+  ep = m.dpush ? { f: m.f0, r: (m.r0 + m.r1) / 2 } : null;
+  lastMove = m;
+  lastMove.fx = kind;
+  w = sqWorld(m.f1, m.r1);
+  wantFocus.x = w.x * 0.45;
+  wantFocus.z = w.z * 0.45;
+  selected = null;
+  legal = [];
+  turn = 1 - turn;
+  if (inCheck(board, turn)) {
+    checkPulse = 1;
+    beep(140, 0.18, 'square');
+  }
+  var replies = allLegal();
+  if (!replies.length) {
+    over = inCheck(board, turn) ? 'mate' : 'stale';
+    beep(over === 'mate' ? 90 : 300, 0.35, 'sine');
+  }
+}
+
+function busy() {
+  return anims.length > 0 || over;
+}
+
+function updateAnims(dt) {
+  var i, a, u, pose, face, col;
+  for (i = anims.length - 1; i >= 0; i--) {
+    a = anims[i];
+    a.t += dt;
+    if (a.t < 0) continue;
+    u = a.t / a.dur;
+    if (u > 1) u = 1;
+    pose = poseFromAnim(a, u);
+    a.p.x = a.x0 + (a.x1 - a.x0) * pose.k;
+    a.p.z = a.z0 + (a.z1 - a.z0) * pose.k;
+    a.p.y = pose.lift;
+    a.p.walk += dt * 18;
+    face = Math.atan2(a.x1 - a.x0, a.z1 - a.z0);
+    a.p.yaw = face + pose.yawWob;
+    a.p.lean = pose.lean;
+    a.p.spin = pose.spin;
+    a.p.squash = pose.squash;
+    if (a.fx && !a.burst && u >= 0.72) {
+      a.burst = 1;
+      col = fxColor(a.fx);
+      spawnSparks(a.x1, 0.4, a.z1, a.fx === 'brilliant' ? 18 : a.fx === 'kill' ? 16 : 12, col, a.fx === 'kill' ? 2.2 : 1.5);
+    }
+    if (u >= 1) {
+      a.p.x = a.x1; a.p.z = a.z1; a.p.y = 0; a.p.squash = 0.82;
+      a.p.yaw = a.p.c === 0 ? 0 : Math.PI;
+      a.p.lean = 0; a.p.spin = 0;
+      anims.splice(i, 1);
+    }
+  }
+  for (i = fallen.length - 1; i >= 0; i--) {
+    a = fallen[i];
+    a.life -= dt;
+    a.x += (a.vx || 0) * dt;
+    a.z += (a.vz || 0) * dt;
+    a.y += dt * 1.6;
+    a.rot += dt * 4 + a.spin * dt;
+    if (a.life <= 0) fallen.splice(i, 1);
+  }
+  updateSparks(dt);
+}
+
+function updateCam(dt) {
+  var k = Math.min(1, 5.5 * dt);
+  focus.x += (wantFocus.x - focus.x) * k;
+  focus.y += (wantFocus.y - focus.y) * k;
+  focus.z += (wantFocus.z - focus.z) * k;
+  var cp = Math.cos(orbit.pitch), sp = Math.sin(orbit.pitch);
+  var cy = Math.cos(orbit.yaw), sy = Math.sin(orbit.yaw);
+  var tx = focus.x + sy * cp * orbit.dist;
+  var ty = focus.y + sp * orbit.dist;
+  var tz = focus.z + cy * cp * orbit.dist;
+  cam.x += (tx - cam.x) * k;
+  cam.y += (ty - cam.y) * k;
+  cam.z += (tz - cam.z) * k;
+  look.x += (focus.x - look.x) * k;
+  look.y += (focus.y - look.y) * k;
+  look.z += (focus.z - look.z) * k;
+  var dx = look.x - cam.x, dy = look.y - cam.y, dz = look.z - cam.z;
+  var len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+  basis.fx = dx / len; basis.fy = dy / len; basis.fz = dz / len;
+  var rx = basis.fy * 0 - 1 * basis.fz;
+  var ry = basis.fz * 0 - 0 * basis.fx;
+  var rz = basis.fx * 1 - 0 * basis.fy;
+  var rl = Math.sqrt(rx * rx + ry * ry + rz * rz) || 1;
+  basis.rx = rx / rl; basis.ry = ry / rl; basis.rz = rz / rl;
+  basis.ux = basis.ry * basis.fz - basis.rz * basis.fy;
+  basis.uy = basis.rz * basis.fx - basis.rx * basis.fz;
+  basis.uz = basis.rx * basis.fy - basis.ry * basis.fx;
+}
+
+function project(x, y, z) {
+  var tx = x - cam.x, ty = y - cam.y, tz = z - cam.z;
+  var cx = tx * basis.rx + ty * basis.ry + tz * basis.rz;
+  var cy = tx * basis.ux + ty * basis.uy + tz * basis.uz;
+  var cz = tx * basis.fx + ty * basis.fy + tz * basis.fz;
+  if (cz < 0.18) return null;
+  var f = (H * 0.62) / Math.tan(FOV * 0.5);
+  return { x: W * 0.5 + cx * f / cz, y: H * 0.5 - cy * f / cz, z: cz };
+}
+
+function mouseRay(mx, my) {
+  var f = (H * 0.62) / Math.tan(FOV * 0.5);
+  var cx = (mx - W * 0.5) / f;
+  var cy = (H * 0.5 - my) / f;
+  var dx = basis.rx * cx + basis.ux * cy + basis.fx;
+  var dy = basis.ry * cx + basis.uy * cy + basis.fy;
+  var dz = basis.rz * cx + basis.uz * cy + basis.fz;
+  var len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+  dx /= len; dy /= len; dz /= len;
+  if (Math.abs(dy) < 1e-5) return null;
+  var t = (0.06 - cam.y) / dy;
+  if (t < 0.1) return null;
+  return { x: cam.x + dx * t, y: 0.06, z: cam.z + dz * t };
+}
+
+function pickSquare(mx, my) {
+  var hit = mouseRay(mx, my);
+  if (!hit) return null;
+  var s = worldSq(hit.x, hit.z);
+  if (s.f < 0 || s.r < 0 || s.f > 7 || s.r > 7) return null;
+  return s;
+}
+
+var quads = [];
+function pushQuad(p0, p1, p2, p3, r, g, b, a) {
+  var ux = p1.x - p0.x, uy = p1.y - p0.y, uz = p1.z - p0.z;
+  var vx = p3.x - p0.x, vy = p3.y - p0.y, vz = p3.z - p0.z;
+  var nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+  var nl = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+  nx /= nl; ny /= nl; nz /= nl;
+  if (nx * (cam.x - p0.x) + ny * (cam.y - p0.y) + nz * (cam.z - p0.z) < 0) return;
+  var A = project(p0.x, p0.y, p0.z);
+  var B = project(p1.x, p1.y, p1.z);
+  var C = project(p2.x, p2.y, p2.z);
+  var D = project(p3.x, p3.y, p3.z);
+  if (!A || !B || !C || !D) return;
+  var lit = 0.58 + 0.5 * Math.max(0, ny * 0.8 + nx * 0.15 + 0.12);
+  quads.push({
+    a: A, b: B, c: C, d: D,
+    r: Math.min(255, r * lit), g: Math.min(255, g * lit), bl: Math.min(255, b * lit),
+    z: (A.z + B.z + C.z + D.z) * 0.25,
+    al: a == null ? 1 : a
+  });
+}
+
+function toWorld(lx, ly, lz, yaw, ox, oy, oz) {
+  var c = Math.cos(yaw), s = Math.sin(yaw);
+  return { x: ox + c * lx + s * lz, y: oy + ly, z: oz + (-s * lx + c * lz) };
+}
+
+function pushBox(lx, ly, lz, sx, sy, sz, rotX, yaw, ox, oy, oz, r, g, b) {
+  var hx = sx * 0.5, hy = sy * 0.5, hz = sz * 0.5;
+  var cr = Math.cos(rotX), sr = Math.sin(rotX);
+  function lp(x, y, z) {
+    var y2 = y * cr - z * sr, z2 = y * sr + z * cr;
+    return toWorld(lx + x, ly + y2, lz + z2, yaw, ox, oy, oz);
+  }
+  var p = [
+    lp(-hx, -hy, -hz), lp(hx, -hy, -hz), lp(hx, hy, -hz), lp(-hx, hy, -hz),
+    lp(-hx, -hy, hz), lp(hx, -hy, hz), lp(hx, hy, hz), lp(-hx, hy, hz)
+  ];
+  pushQuad(p[4], p[5], p[6], p[7], r, g, b);
+  pushQuad(p[1], p[0], p[3], p[2], r * 0.7, g * 0.7, b * 0.7);
+  pushQuad(p[0], p[4], p[7], p[3], r * 0.86, g * 0.86, b * 0.86);
+  pushQuad(p[5], p[1], p[2], p[6], r * 0.86, g * 0.86, b * 0.86);
+  pushQuad(p[7], p[6], p[2], p[3], r * 1.12, g * 1.12, b * 1.12);
+  pushQuad(p[0], p[1], p[5], p[4], r * 0.48, g * 0.48, b * 0.48);
+}
+
+function pal(c) {
+  return c === 0
+    ? { a: [242, 226, 188], b: [210, 184, 132], d: [138, 108, 74], h: [255, 240, 210], m: [186, 150, 92] }
+    : { a: [118, 138, 162], b: [64, 80, 102], d: [32, 42, 56], h: [168, 188, 210], m: [88, 108, 132] };
+}
+
+function pb(p, lx, ly, lz, sx, sy, sz, rotX, r, g, b, bob) {
+  pushBox(lx, ly * p.squash, lz, sx, sy * p.squash, sz, (rotX || 0) + (p.lean || 0), p.yaw + (p.spin || 0), p.x, p.y + bob, p.z, r, g, b);
+}
+
+var POLY = 6;
+
+function pieceXF(p, bob) {
+  var lean = p.lean || 0;
+  return {
+    yaw: p.yaw + (p.spin || 0),
+    ox: p.x, oy: p.y + bob, oz: p.z,
+    sq: p.squash || 1,
+    cr: Math.cos(lean), sr: Math.sin(lean)
+  };
+}
+
+function pv(xf, x, y, z) {
+  y *= xf.sq;
+  var y2 = y * xf.cr - z * xf.sr;
+  var z2 = y * xf.sr + z * xf.cr;
+  return toWorld(x, y2, z2, xf.yaw, xf.ox, xf.oy, xf.oz);
+}
+
+function tintFace(rgb, k) {
+  return [Math.min(255, rgb[0] * k), Math.min(255, rgb[1] * k), Math.min(255, rgb[2] * k)];
+}
+
+function pTri(xf, a, b, c, rgb, k) {
+  var t = tintFace(rgb, k == null ? 1 : k);
+  var p0 = pv(xf, a[0], a[1], a[2]);
+  var p1 = pv(xf, b[0], b[1], b[2]);
+  var p2 = pv(xf, c[0], c[1], c[2]);
+  pushQuad(p0, p1, p2, p2, t[0], t[1], t[2]);
+}
+
+function pFace(xf, a, b, c, d, rgb, k) {
+  var t = tintFace(rgb, k == null ? 1 : k);
+  pushQuad(pv(xf, a[0], a[1], a[2]), pv(xf, b[0], b[1], b[2]), pv(xf, c[0], c[1], c[2]), pv(xf, d[0], d[1], d[2]), t[0], t[1], t[2]);
+}
+
+function ringPt(ring, i, n) {
+  var a = (i / n) * Math.PI * 2 + (ring.tw || 0);
+  return [
+    (ring.x || 0) + Math.sin(a) * ring.rad,
+    ring.y,
+    (ring.z || 0) + Math.cos(a) * ring.rad
+  ];
+}
+
+function pLoft(xf, rings, rgb, n) {
+  n = n || POLY;
+  var i, j, A, B, k;
+  for (i = 0; i < rings.length - 1; i++) {
+    A = rings[i]; B = rings[i + 1];
+    for (j = 0; j < n; j++) {
+      k = (j & 1) ? 0.78 : 1;
+      pFace(xf, ringPt(A, j, n), ringPt(A, j + 1, n), ringPt(B, j + 1, n), ringPt(B, j, n), rgb, k);
+    }
+  }
+}
+
+function pCap(xf, ring, rgb, up, n) {
+  n = n || POLY;
+  var i, c = [ring.x || 0, ring.y, ring.z || 0], a, b;
+  for (i = 0; i < n; i++) {
+    a = ringPt(ring, i, n);
+    b = ringPt(ring, i + 1, n);
+    if (up) pTri(xf, c, a, b, rgb, (i & 1) ? 0.92 : 1.05);
+    else pTri(xf, c, b, a, rgb, 0.55);
+  }
+}
+
+function pBall(xf, x, y, z, rx, ry, rz, rgb) {
+  var n = POLY, i, j, a, hi = [], mid = [], lo = [];
+  for (i = 0; i < n; i++) {
+    a = (i / n) * Math.PI * 2 + 0.26;
+    mid.push([x + Math.sin(a) * rx, y, z + Math.cos(a) * rz]);
+    hi.push([x + Math.sin(a) * rx * 0.52, y + ry * 0.52, z + Math.cos(a) * rz * 0.52]);
+    lo.push([x + Math.sin(a) * rx * 0.52, y - ry * 0.52, z + Math.cos(a) * rz * 0.52]);
+  }
+  var top = [x, y + ry, z], bot = [x, y - ry, z];
+  for (i = 0; i < n; i++) {
+    j = (i + 1) % n;
+    pTri(xf, top, hi[i], hi[j], rgb, 1.08);
+    pFace(xf, hi[i], mid[i], mid[j], hi[j], rgb, (i & 1) ? 0.82 : 1);
+    pFace(xf, mid[i], lo[i], lo[j], mid[j], rgb, (i & 1) ? 0.7 : 0.88);
+    pTri(xf, bot, lo[j], lo[i], rgb, 0.58);
+  }
+}
+
+function pPyr(xf, tip, b0, b1, b2, rgb) {
+  pTri(xf, tip, b0, b1, rgb, 1.05);
+  pTri(xf, tip, b1, b2, rgb, 0.86);
+  pTri(xf, tip, b2, b0, rgb, 0.72);
+  pTri(xf, b0, b2, b1, rgb, 0.5);
+}
+
+function pTube(xf, ax, ay, az, bx, by, bz, rad, n, rgb) {
+  var dx = bx - ax, dy = by - ay, dz = bz - az;
+  var len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+  dx /= len; dy /= len; dz /= len;
+  var ux, uy, uz, ul, vx, vy, vz, i, j, a0, a1, k;
+  if (Math.abs(dy) < 0.92) { ux = dy; uy = -dx; uz = 0; }
+  else { ux = 1; uy = 0; uz = 0; }
+  ul = Math.sqrt(ux * ux + uy * uy + uz * uz) || 1;
+  ux /= ul; uy /= ul; uz /= ul;
+  vx = dy * uz - dz * uy; vy = dz * ux - dx * uz; vz = dx * uy - dy * ux;
+  function at(t, ang) {
+    var c = Math.cos(ang), s = Math.sin(ang);
+    return [
+      ax + dx * t * len + (ux * c + vx * s) * rad,
+      ay + dy * t * len + (uy * c + vy * s) * rad,
+      az + dz * t * len + (uz * c + vz * s) * rad
+    ];
+  }
+  n = n || 5;
+  for (i = 0; i < n; i++) {
+    a0 = (i / n) * Math.PI * 2;
+    a1 = ((i + 1) / n) * Math.PI * 2;
+    k = (i & 1) ? 0.8 : 1;
+    pFace(xf, at(0, a0), at(0, a1), at(1, a1), at(1, a0), rgb, k);
+  }
+}
+
+function addFoot(xf, col, s) {
+  s = s || 1;
+  pCap(xf, { y: 0, rad: 0.31 * s }, col.d, false);
+  pLoft(xf, [
+    { y: 0.00, rad: 0.31 * s },
+    { y: 0.055, rad: 0.33 * s },
+    { y: 0.12, rad: 0.24 * s },
+    { y: 0.17, rad: 0.17 * s },
+    { y: 0.23, rad: 0.135 * s }
+  ], col.d);
+  pLoft(xf, [
+    { y: 0.055, rad: 0.33 * s, tw: 0.12 },
+    { y: 0.055, rad: 0.26 * s, tw: 0.12 }
+  ], col.m);
+  pLoft(xf, [
+    { y: 0.17, rad: 0.17 * s },
+    { y: 0.17, rad: 0.21 * s },
+    { y: 0.21, rad: 0.21 * s },
+    { y: 0.23, rad: 0.135 * s }
+  ], col.m);
+}
+
+function addCollar(xf, y, r, col) {
+  pLoft(xf, [
+    { y: y - 0.03, rad: r * 0.72 },
+    { y: y, rad: r },
+    { y: y + 0.045, rad: r * 0.78 }
+  ], col.a);
+}
+
+function addPawn(p, col, bob) {
+  var xf = pieceXF(p, bob);
+  addFoot(xf, col, 0.96);
+  pLoft(xf, [
+    { y: 0.23, rad: 0.125 },
+    { y: 0.42, rad: 0.09 },
+    { y: 0.58, rad: 0.1 }
+  ], col.b);
+  addCollar(xf, 0.62, 0.155, col);
+  pBall(xf, 0, 0.82, 0, 0.175, 0.185, 0.175, col.a);
+  pPyr(xf, [0, 1.02, 0], [-0.05, 0.93, 0.03], [0.05, 0.93, 0.03], [0, 0.93, -0.05], col.h);
+}
+
+function addRook(p, col, bob) {
+  var xf = pieceXF(p, bob);
+  var i, a, a2, r0 = 0.22, r1 = 0.16, y0 = 0.98, y1 = 1.22;
+  var inner, outer0, outer1, outer2, tip;
+  addFoot(xf, col, 1.06);
+  pLoft(xf, [
+    { y: 0.23, rad: 0.16 },
+    { y: 0.38, rad: 0.145 },
+    { y: 0.72, rad: 0.15 },
+    { y: 0.88, rad: 0.2 }
+  ], col.b);
+  addCollar(xf, 0.9, 0.23, col);
+  pLoft(xf, [
+    { y: 0.92, rad: 0.225 },
+    { y: 1.0, rad: 0.225 }
+  ], col.a);
+  pCap(xf, { y: 0.97, rad: 0.14 }, col.d, true);
+  pLoft(xf, [
+    { y: 0.97, rad: 0.14 },
+    { y: 0.97, rad: 0.225 }
+  ], col.m);
+  for (i = 0; i < POLY; i++) {
+    a = (i / POLY) * Math.PI * 2;
+    a2 = ((i + 0.55) / POLY) * Math.PI * 2;
+    outer0 = [Math.sin(a) * r0, y0, Math.cos(a) * r0];
+    outer1 = [Math.sin(a2) * r0, y0, Math.cos(a2) * r0];
+    outer2 = [Math.sin((a + a2) * 0.5) * (r0 + 0.02), y0, Math.cos((a + a2) * 0.5) * (r0 + 0.02)];
+    inner = [Math.sin((a + a2) * 0.5) * r1, y0, Math.cos((a + a2) * 0.5) * r1];
+    tip = [Math.sin((a + a2) * 0.5) * 0.2, y1, Math.cos((a + a2) * 0.5) * 0.2];
+    pPyr(xf, tip, outer0, outer2, inner, col.a);
+    pPyr(xf, tip, outer2, outer1, inner, col.h);
+  }
+}
+
+function addKnight(p, col, bob) {
+  var xf = pieceXF(p, bob);
+  var wob = Math.sin(p.walk) * 0.07;
+  var eye = p.c === 0 ? [42, 28, 22] : [18, 22, 30];
+  addFoot(xf, col, 1.0);
+  pLoft(xf, [
+    { y: 0.23, z: 0.00, rad: 0.14 },
+    { y: 0.40, z: 0.03, rad: 0.17 },
+    { y: 0.55, z: 0.07 + wob * 0.04, rad: 0.155 },
+    { y: 0.70, z: 0.16 + wob * 0.08, rad: 0.13 },
+    { y: 0.84, z: 0.26 + wob * 0.1, rad: 0.135 },
+    { y: 0.94, z: 0.34 + wob * 0.1, rad: 0.12 }
+  ], col.a);
+  var nr = { y: 0.94, z: 0.34 + wob * 0.1, rad: 0.12 };
+  var hy = wob * 0.05;
+  var crown = [0, 1.14 + hy, 0.28];
+  var brow = [0, 1.02 + hy, 0.44];
+  var snoutT = [0, 0.90 + hy, 0.58];
+  var snout = [0, 0.80 + hy, 0.68];
+  var lip = [0, 0.73 + hy, 0.58];
+  var chin = [0, 0.68 + hy, 0.42];
+  var nape = [0, 0.92 + hy, 0.18];
+  var lCheek = [-0.15, 0.94 + hy, 0.36];
+  var rCheek = [0.15, 0.94 + hy, 0.36];
+  var lJaw = [-0.11, 0.76 + hy, 0.38];
+  var rJaw = [0.11, 0.76 + hy, 0.38];
+  var lEarB = [-0.08, 1.06 + hy, 0.22];
+  var rEarB = [0.08, 1.06 + hy, 0.22];
+  var lEarT = [-0.1, 1.30 + hy, 0.16];
+  var rEarT = [0.1, 1.30 + hy, 0.16];
+  var lEarI = [-0.06, 1.08 + hy, 0.28];
+  var rEarI = [0.06, 1.08 + hy, 0.28];
+  pTri(xf, ringPt(nr, 0, POLY), ringPt(nr, 1, POLY), rCheek, col.a, 0.95);
+  pTri(xf, ringPt(nr, 1, POLY), ringPt(nr, 2, POLY), rCheek, col.a, 0.88);
+  pTri(xf, ringPt(nr, 2, POLY), ringPt(nr, 3, POLY), nape, col.a, 0.82);
+  pTri(xf, ringPt(nr, 3, POLY), ringPt(nr, 4, POLY), lCheek, col.a, 0.88);
+  pTri(xf, ringPt(nr, 4, POLY), ringPt(nr, 5, POLY), lCheek, col.a, 0.95);
+  pTri(xf, ringPt(nr, 5, POLY), ringPt(nr, 0, POLY), brow, col.h, 1);
+  pTri(xf, rCheek, nape, ringPt(nr, 2, POLY), col.a, 0.8);
+  pTri(xf, lCheek, ringPt(nr, 3, POLY), nape, col.a, 0.8);
+  pTri(xf, crown, brow, rCheek, col.h, 1.08);
+  pTri(xf, crown, lCheek, brow, col.h, 1.02);
+  pTri(xf, crown, rCheek, nape, col.a, 0.9);
+  pTri(xf, crown, nape, lCheek, col.a, 0.86);
+  pTri(xf, brow, snoutT, rCheek, col.a, 1);
+  pTri(xf, brow, lCheek, snoutT, col.a, 0.92);
+  pTri(xf, snoutT, snout, rCheek, col.h, 0.95);
+  pTri(xf, snoutT, lCheek, snout, col.h, 0.88);
+  pTri(xf, snout, lip, rJaw, col.b, 0.8);
+  pTri(xf, snout, lJaw, lip, col.b, 0.76);
+  pTri(xf, snout, rCheek, rJaw, col.b, 0.84);
+  pTri(xf, snout, lJaw, lCheek, col.b, 0.8);
+  pTri(xf, lip, chin, rJaw, col.d, 0.7);
+  pTri(xf, lip, lJaw, chin, col.d, 0.66);
+  pTri(xf, chin, nape, rCheek, col.m, 0.72);
+  pTri(xf, chin, lCheek, nape, col.m, 0.68);
+  pTri(xf, chin, rJaw, rCheek, col.m, 0.74);
+  pTri(xf, chin, lCheek, lJaw, col.m, 0.7);
+  pPyr(xf, lEarT, lEarB, lEarI, nape, col.a);
+  pPyr(xf, rEarT, rEarI, rEarB, nape, col.a);
+  pTri(xf, lEarT, lEarI, lEarB, col.h, 0.7);
+  pTri(xf, rEarT, rEarB, rEarI, col.h, 0.7);
+  pPyr(xf, [0, 1.22 + hy, 0.12], crown, nape, [0, 1.02 + hy, 0.08], col.d);
+  pPyr(xf, [0, 1.04 + hy, 0.02], nape, [0, 0.82 + hy, 0.08], [0, 0.88 + hy, -0.02], col.d);
+  pPyr(xf, [0, 0.78 + hy, -0.04], [0, 0.82 + hy, 0.08], [0, 0.58 + hy, 0.04], [0, 0.62 + hy, -0.06], col.d);
+  pTri(xf, [-0.07, 0.96 + hy, 0.48], [-0.03, 0.98 + hy, 0.5], [-0.05, 0.92 + hy, 0.52], eye, 1);
+  pTri(xf, [0.07, 0.96 + hy, 0.48], [0.05, 0.92 + hy, 0.52], [0.03, 0.98 + hy, 0.5], eye, 1);
+  pTri(xf, snout, [0.03, 0.78 + hy, 0.64], [-0.03, 0.78 + hy, 0.64], col.d, 0.55);
+}
+
+function addBishop(p, col, bob) {
+  var xf = pieceXF(p, bob);
+  addFoot(xf, col, 0.98);
+  pLoft(xf, [
+    { y: 0.23, rad: 0.12 },
+    { y: 0.48, rad: 0.085 },
+    { y: 0.78, rad: 0.1 }
+  ], col.b);
+  addCollar(xf, 0.82, 0.16, col);
+  pLoft(xf, [
+    { y: 0.86, rad: 0.15, tw: 0.2 },
+    { y: 1.08, rad: 0.13, tw: 0.2 },
+    { y: 1.28, rad: 0.05, tw: 0.2 }
+  ], col.a);
+  pPyr(xf, [0, 1.42, 0], [-0.045, 1.26, 0.02], [0.045, 1.26, 0.02], [0, 1.26, -0.045], col.h);
+  pBall(xf, 0, 1.36, 0, 0.055, 0.055, 0.055, col.h);
+  pFace(xf, [-0.02, 0.88, 0.14], [0.02, 0.88, 0.14], [0.015, 1.24, 0.04], [-0.015, 1.24, 0.04], col.d, 0.55);
+  pFace(xf, [0.02, 0.88, -0.14], [-0.02, 0.88, -0.14], [-0.015, 1.24, -0.04], [0.015, 1.24, -0.04], col.d, 0.5);
+}
+
+function addQueen(p, col, bob) {
+  var xf = pieceXF(p, bob);
+  var i, a, a2, base0, base1, base2, tip;
+  addFoot(xf, col, 1.04);
+  pLoft(xf, [
+    { y: 0.23, rad: 0.13 },
+    { y: 0.50, rad: 0.1 },
+    { y: 0.86, rad: 0.115 }
+  ], col.b);
+  addCollar(xf, 0.9, 0.175, col);
+  pLoft(xf, [
+    { y: 0.94, rad: 0.2 },
+    { y: 1.06, rad: 0.22 }
+  ], col.a);
+  pCap(xf, { y: 1.06, rad: 0.22 }, col.h, true);
+  pBall(xf, 0, 1.18, 0, 0.09, 0.1, 0.09, col.h);
+  for (i = 0; i < POLY; i++) {
+    a = (i / POLY) * Math.PI * 2;
+    a2 = ((i + 1) / POLY) * Math.PI * 2;
+    base0 = [Math.sin(a) * 0.2, 1.06, Math.cos(a) * 0.2];
+    base1 = [Math.sin(a2) * 0.2, 1.06, Math.cos(a2) * 0.2];
+    base2 = [Math.sin((a + a2) * 0.5) * 0.12, 1.06, Math.cos((a + a2) * 0.5) * 0.12];
+    tip = [Math.sin((a + a2) * 0.5) * 0.21, 1.36, Math.cos((a + a2) * 0.5) * 0.21];
+    pPyr(xf, tip, base0, base1, base2, i & 1 ? col.a : col.h);
+  }
+}
+
+function addKing(p, col, bob) {
+  var flash = p.t === 'k' && inCheck(board, p.c) && checkPulse > 0;
+  var body = flash ? [220, 70, 50] : col.a;
+  var gem = flash ? [255, 120, 90] : col.h;
+  var xf = pieceXF(p, bob);
+  addFoot(xf, col, 1.08);
+  pLoft(xf, [
+    { y: 0.23, rad: 0.135 },
+    { y: 0.52, rad: 0.105 },
+    { y: 0.96, rad: 0.12 }
+  ], col.b);
+  addCollar(xf, 1.0, 0.185, col);
+  pLoft(xf, [
+    { y: 1.04, rad: 0.21 },
+    { y: 1.16, rad: 0.23 }
+  ], body);
+  pCap(xf, { y: 1.16, rad: 0.23 }, gem, true);
+  pTube(xf, 0, 1.16, 0, 0, 1.62, 0, 0.045, 5, gem);
+  pTube(xf, -0.16, 1.42, 0, 0.16, 1.42, 0, 0.04, 5, body);
+  pBall(xf, 0, 1.66, 0, 0.055, 0.055, 0.055, gem);
+}
+
+function addPiece(p, extraY, extraRot) {
+  var col = pal(p.c);
+  var sel = selected && selected.id === p.id;
+  var hinted = hintMove && aiElo >= 2200 && p.f === hintMove.f0 && p.r === hintMove.r0;
+  var bob = Math.sin(time * 2.2 + p.id) * 0.02 + (sel ? 0.16 + Math.sin(time * 6) * 0.04 : 0) + (hinted ? 0.1 + Math.sin(time * 5.5) * 0.05 : 0);
+  var y = extraY || 0;
+  var oldY = p.y;
+  var oldYaw = p.yaw;
+  var an = animFor(p);
+  p.y += y;
+  if (extraRot) p.yaw += extraRot;
+  if (an) addMoveFx(p, an);
+  if (p.t === 'p') addPawn(p, col, bob);
+  else if (p.t === 'r') addRook(p, col, bob);
+  else if (p.t === 'n') addKnight(p, col, bob);
+  else if (p.t === 'b') addBishop(p, col, bob);
+  else if (p.t === 'q') addQueen(p, col, bob);
+  else addKing(p, col, bob);
+  p.y = oldY;
+  p.yaw = oldYaw;
+}
+
+function addTable() {
+  var x, z, dark, o, i, legs;
+  pushBox(0, -0.42, 0, SQ * 13.2, 0.28, SQ * 13.2, 0, 0, 0, 0, 0, 72, 48, 30);
+  for (x = -6; x <= 6; x++) {
+    for (z = -6; z <= 6; z++) {
+      dark = ((x + z) & 1) === 0;
+      pushQuad(
+        { x: x * SQ - SQ * 0.5, y: -0.26, z: z * SQ - SQ * 0.5 },
+        { x: x * SQ + SQ * 0.5, y: -0.26, z: z * SQ - SQ * 0.5 },
+        { x: x * SQ + SQ * 0.5, y: -0.26, z: z * SQ + SQ * 0.5 },
+        { x: x * SQ - SQ * 0.5, y: -0.26, z: z * SQ + SQ * 0.5 },
+        dark ? 86 : 102, dark ? 56 : 70, dark ? 34 : 44
+      );
+    }
+  }
+  o = SQ * 5.6;
+  legs = [[-o, -o], [o, -o], [-o, o], [o, o]];
+  for (i = 0; i < 4; i++) {
+    pushBox(0, -1.2, 0, 0.42, 1.55, 0.42, 0, 0, legs[i][0], 0, legs[i][1], 58, 38, 24);
+    pushBox(0, -0.38, 0, 0.62, 0.16, 0.62, 0, 0, legs[i][0], 0, legs[i][1], 78, 52, 34);
+  }
+}
+
+function addBoard() {
+  var f, r, w, light, hov, mark, i, lm;
+  var bw = SQ * 8, frame = 0.48;
+  pushBox(0, -0.08, -(bw * 0.5 + frame * 0.5), bw + frame * 2, 0.34, frame, 0, 0, 0, 0, 0, 96, 70, 44);
+  pushBox(0, -0.08, bw * 0.5 + frame * 0.5, bw + frame * 2, 0.34, frame, 0, 0, 0, 0, 0, 96, 70, 44);
+  pushBox(-(bw * 0.5 + frame * 0.5), -0.08, 0, frame, 0.34, bw, 0, 0, 0, 0, 0, 88, 64, 40);
+  pushBox(bw * 0.5 + frame * 0.5, -0.08, 0, frame, 0.34, bw, 0, 0, 0, 0, 0, 88, 64, 40);
+  for (r = 0; r < 8; r++) for (f = 0; f < 8; f++) {
+    w = sqWorld(f, r);
+    light = (f + r) % 2 === 0;
+    hov = hover && hover.f === f && hover.r === r;
+    mark = 0;
+    for (i = 0; i < legal.length; i++) if (legal[i].f1 === f && legal[i].r1 === r) mark = legal[i].ep || board[r][f] ? 2 : 1;
+    lm = lastMove && ((lastMove.f0 === f && lastMove.r0 === r) || (lastMove.f1 === f && lastMove.r1 === r));
+    var cr = light ? 214 : 78;
+    var cg = light ? 176 : 108;
+    var cb = light ? 118 : 86;
+    if (lm) {
+      if (lastMove.fx === 'brilliant') { cr = (cr + 40) / 2; cg = (cg + 210) / 2; cb = (cb + 220) / 2; }
+      else if (lastMove.fx === 'great') { cr = (cr + 70) / 2; cg = (cg + 220) / 2; cb = (cb + 90) / 2; }
+      else if (lastMove.fx === 'best') { cr = (cr + 240) / 2; cg = (cg + 190) / 2; cb = (cb + 50) / 2; }
+      else if (lastMove.fx === 'kill') { cr = (cr + 220) / 2; cg = (cg + 70) / 2; cb = (cb + 50) / 2; }
+      else { cr = (cr + 180) / 2; cg = (cg + 140) / 2; cb = (cb + 60) / 2; }
+    }
+    if (hintMove && aiElo >= 2200 && ((hintMove.f0 === f && hintMove.r0 === r) || (hintMove.f1 === f && hintMove.r1 === r))) {
+      var dest = hintMove.f1 === f && hintMove.r1 === r;
+      cr = (cr + (dest ? 255 : 236)) / 2;
+      cg = (cg + (dest ? 198 : 168)) / 2;
+      cb = (cb + 48) / 2;
+    }
+    if (hov) { cr = Math.min(255, cr + 40); cg = Math.min(255, cg + 35); }
+    if (mark === 1) { cg = Math.min(255, cg + 70); cr = Math.max(40, cr - 20); }
+    if (mark === 2) { cr = 200; cg = 70; cb = 50; }
+    pushQuad(
+      { x: w.x - SQ * 0.5, y: 0.05, z: w.z - SQ * 0.5 },
+      { x: w.x + SQ * 0.5, y: 0.05, z: w.z - SQ * 0.5 },
+      { x: w.x + SQ * 0.5, y: 0.05, z: w.z + SQ * 0.5 },
+      { x: w.x - SQ * 0.5, y: 0.05, z: w.z + SQ * 0.5 },
+      cr, cg, cb
+    );
+    if (mark === 1 && !board[r][f]) {
+      pushBox(0, 0.1, 0, 0.22, 0.06, 0.22, 0, 0, w.x, 0, w.z, 80, 200, 110);
+    }
+  }
+}
+
+function addHintArrow() {
+  if (!hintMove || aiElo < 2200 || !isPlayerTurn()) return;
+  var a = sqWorld(hintMove.f0, hintMove.r0);
+  var b = sqWorld(hintMove.f1, hintMove.r1);
+  var dx = b.x - a.x, dz = b.z - a.z;
+  var len = Math.sqrt(dx * dx + dz * dz) || 1;
+  var yaw = Math.atan2(dx, dz);
+  var pulse = 0.62 + Math.sin(time * 5.2) * 0.22;
+  var gr = 255 * pulse, gg = 205 * pulse, gb = 70 * pulse;
+  var mx = (a.x + b.x) * 0.5, mz = (a.z + b.z) * 0.5;
+  var shaft = Math.max(0.18, len - 0.55);
+  pushBox(0, 0.09, 0, 1.02, 0.035, 1.02, 0, 0, a.x, 0, a.z, gr * 0.7, gg * 0.7, gb * 0.7);
+  pushBox(0, 0.09, 0, 1.02, 0.035, 1.02, 0, 0, b.x, 0, b.z, gr, gg, gb);
+  pushBox(0, 0.14, 0, 0.11, 0.05, shaft, 0, yaw, mx, 0, mz, gr, gg, gb);
+  pushBox(0, 0.16, 0, 0.32, 0.06, 0.22, 0, yaw, b.x - Math.sin(yaw) * 0.18, 0, b.z - Math.cos(yaw) * 0.18, 255, 220, 90);
+  if (!board[hintMove.r1][hintMove.f1]) {
+    pushBox(0, 0.12, 0, 0.28, 0.07, 0.28, 0, time * 2, b.x, 0, b.z, gr, gg, gb);
+  }
+}
+
+function flushQuads(outline) {
+  var i, a;
+  quads.sort(function (a, b) { return b.z - a.z; });
+  for (i = 0; i < quads.length; i++) {
+    a = quads[i];
+    ctx.globalAlpha = a.al;
+    ctx.fillStyle = 'rgb(' + (a.r | 0) + ',' + (a.g | 0) + ',' + (a.bl | 0) + ')';
+    ctx.beginPath();
+    ctx.moveTo(a.a.x, a.a.y);
+    ctx.lineTo(a.b.x, a.b.y);
+    ctx.lineTo(a.c.x, a.c.y);
+    ctx.lineTo(a.d.x, a.d.y);
+    ctx.closePath();
+    ctx.fill();
+    if (outline) {
+      ctx.strokeStyle = 'rgba(8,10,14,0.45)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+  quads.length = 0;
+}
+
+function pieceDepth(p) {
+  var tx = p.x - cam.x, ty = p.y + 0.55 - cam.y, tz = p.z - cam.z;
+  return tx * basis.fx + ty * basis.fy + tz * basis.fz;
+}
+
+function draw() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  var g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#1a242e');
+  g.addColorStop(1, '#0b0e12');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  quads.length = 0;
+  addTable();
+  flushQuads(false);
+  addBoard();
+  addHintArrow();
+  flushQuads(false);
+
+  var r, f, p, i, a, list = [];
+  for (r = 0; r < 8; r++) for (f = 0; f < 8; f++) {
+    p = board[r][f];
+    if (p) {
+      p.squash += (1 - p.squash) * 0.12;
+      list.push(p);
+    }
+  }
+  list.sort(function (a, b) { return pieceDepth(b) - pieceDepth(a); });
+  for (i = 0; i < list.length; i++) {
+    addPiece(list[i], 0, 0);
+    flushQuads(true);
+  }
+  for (i = 0; i < fallen.length; i++) {
+    a = fallen[i];
+    a.p.x = a.x; a.p.z = a.z; a.p.y = a.y; a.p.yaw = a.yaw;
+    addPiece(a.p, 0, a.rot);
+    flushQuads(true);
+  }
+  if (sparks.length) {
+    addSparks();
+    flushQuads(false);
+  }
+
+  var files = 'ABCDEFGH';
+  var w, sp;
+  ctx.font = '13px Georgia';
+  ctx.fillStyle = 'rgba(200,180,140,0.55)';
+  ctx.textAlign = 'center';
+  for (f = 0; f < 8; f++) {
+    w = sqWorld(f, -0.72);
+    sp = project(w.x, 0.05, w.z);
+    if (sp) ctx.fillText(files[f], sp.x, sp.y);
+    w = sqWorld(-0.72, f);
+    sp = project(w.x, 0.05, w.z);
+    if (sp) ctx.fillText(String(f + 1), sp.x, sp.y);
+  }
+  if (screenFx) {
+    var tint = fxColor(screenFx.kind);
+    var ta = Math.sin(Math.min(1, screenFx.t / 0.12) * Math.PI) * 0.16 * (1 - screenFx.t / screenFx.dur);
+    ctx.fillStyle = 'rgba(' + tint[0] + ',' + tint[1] + ',' + tint[2] + ',' + ta + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+function canvasPos(e) {
+  var rect = canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left) * (canvas.width / rect.width),
+    y: (e.clientY - rect.top) * (canvas.height / rect.height)
+  };
+}
+
+function tryClick(mx, my) {
+  if (!started) {
+    started = true;
+    ui.style.display = 'none';
+    if (audioCtx && audioCtx.resume) audioCtx.resume();
+  }
+  if (busy() && over) {
+    setupBoard();
+    return;
+  }
+  if (busy()) return;
+  if (vsAI && turn === aiColor) return;
+  var s = pickSquare(mx, my);
+  if (!s) { selected = null; legal = []; return; }
+  var i, m, p = pieceAt(s.f, s.r);
+  if (selected) {
+    for (i = 0; i < legal.length; i++) {
+      m = legal[i];
+      if (m.f1 === s.f && m.r1 === s.r) {
+        playMove(m);
+        return;
+      }
+    }
+  }
+  if (p && p.c === turn) {
+    selected = p;
+    legal = allLegal().filter(function (mv) { return mv.f0 === p.f && mv.r0 === p.r; });
+    wantFocus.x = p.x * 0.25;
+    wantFocus.z = p.z * 0.25;
+    beep(520, 0.04);
+  } else {
+    selected = null;
+    legal = [];
+  }
+}
+
+function refreshHud() {
+  if (over === 'mate') {
+    turnEl.textContent = (turn === 0 ? 'BLACK' : 'WHITE') + ' WINS';
+    hud.textContent = 'checkmate  ·  click the board for a new game';
+  } else if (over === 'stale') {
+    turnEl.textContent = 'DRAW';
+    hud.textContent = 'stalemate  ·  click for a new game';
+  } else {
+    turnEl.innerHTML = (turn === 0 ? 'WHITE' : 'BLACK') + ' TO MOVE' + (inCheck(board, turn) ? ' <b>· CHECK</b>' : '');
+    hud.textContent = vsAI && turn === aiColor
+      ? ((engineMode === 'gambit' ? (lastGambit || 'gambit') : 'house') + ' ' + aiElo + ' is thinking')
+      : (hintMove && aiElo >= 2200
+        ? ('best  ' + formatHint(hintMove) + '  ·  gold arrow')
+        : 'left click a piece  ·  right drag to orbit');
+  }
+  refreshSide();
+}
+
+canvas.addEventListener('mousedown', function (e) {
+  var p = canvasPos(e);
+  if (e.button === 2 || e.button === 1) {
+    dragging = true;
+    canvas.className = 'drag';
+    lastMX = e.clientX; lastMY = e.clientY;
+    e.preventDefault();
+    return;
+  }
+  if (e.button === 0) {
+    canvas.focus();
+    tryClick(p.x, p.y);
+  }
+});
+window.addEventListener('mouseup', function () {
+  dragging = false;
+  canvas.className = '';
+});
+window.addEventListener('mousemove', function (e) {
+  if (dragging) {
+    orbit.yaw -= (e.clientX - lastMX) * 0.006;
+    orbit.pitch += (e.clientY - lastMY) * 0.0045;
+    if (orbit.pitch < 0.28) orbit.pitch = 0.28;
+    if (orbit.pitch > 1.25) orbit.pitch = 1.25;
+    lastMX = e.clientX; lastMY = e.clientY;
+    return;
+  }
+  var p = canvasPos(e);
+  hover = pickSquare(p.x, p.y);
+});
+canvas.addEventListener('wheel', function (e) {
+  e.preventDefault();
+  orbit.dist += e.deltaY * 0.01;
+  if (orbit.dist < 7) orbit.dist = 7;
+  if (orbit.dist > 20) orbit.dist = 20;
+}, { passive: false });
+canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+document.addEventListener('keydown', function (e) {
+  keys[e.code] = true;
+  if (e.code === 'KeyR') setupBoard();
+  if (e.code === 'KeyT') {
+    vsAI = !vsAI;
+    refreshSide();
+  }
+  if (e.code === 'BracketLeft' || e.code === 'Minus') setElo(aiElo - 50);
+  if (e.code === 'BracketRight' || e.code === 'Equal') setElo(aiElo + 50);
+});
+document.addEventListener('keyup', function (e) { keys[e.code] = false; });
+
+eloSlider.addEventListener('input', function () { setElo(Number(eloSlider.value)); });
+eloPresets.addEventListener('click', function (e) {
+  var b = e.target.getAttribute && e.target.getAttribute('data-elo');
+  if (b) setElo(Number(b));
+});
+aiTog.addEventListener('click', function () {
+  vsAI = !vsAI;
+  refreshSide();
+});
+document.getElementById('engines').addEventListener('click', function (e) {
+  var m = e.target.getAttribute && e.target.getAttribute('data-eng');
+  if (!m) return;
+  engineMode = m;
+  if (m === 'gambit') aiColor = 0;
+  setupBoard();
+  refreshSide();
+});
+document.getElementById('colors').addEventListener('click', function (e) {
+  var c = e.target.getAttribute && e.target.getAttribute('data-color');
+  if (c == null) return;
+  aiColor = Number(c);
+  setupBoard();
+  refreshSide();
+});
+document.getElementById('elo').addEventListener('mousedown', function (e) { e.stopPropagation(); });
+
+setupBoard();
+setElo(1200);
+var last = performance.now();
+var aiWait = 0;
+
+function tick(now) {
+  var dt = (now - last) / 1000;
+  last = now;
+  if (dt > 0.05) dt = 0.05;
+  time += dt;
+  if (checkPulse > 0) checkPulse -= dt;
+  if (keys.KeyA || keys.ArrowLeft) orbit.yaw -= 1.2 * dt;
+  if (keys.KeyD || keys.ArrowRight) orbit.yaw += 1.2 * dt;
+  if (keys.KeyW || keys.ArrowUp) orbit.pitch = Math.max(0.28, orbit.pitch - 0.7 * dt);
+  if (keys.KeyS || keys.ArrowDown) orbit.pitch = Math.min(1.25, orbit.pitch + 0.7 * dt);
+
+  updateAnims(dt);
+  if (anims.length === 0 && !over) {
+    wantFocus.x += (0 - wantFocus.x) * dt * 0.7;
+    wantFocus.z += (0 - wantFocus.z) * dt * 0.7;
+  }
+  refreshHint();
+  if (vsAI && turn === aiColor && anims.length === 0 && !over && started) {
+    aiWait += dt;
+    if (aiWait > aiProfile().think) {
+      aiWait = 0;
+      requestAiMove();
+    }
+  } else aiWait = 0;
+
+  updateCam(dt);
+  draw();
+  refreshHud();
+  requestAnimationFrame(tick);
+}
+
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
