@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flash + DS</title>
+<title>Why Revived</title>
 <!--
   One file. Inline CSS + JS only.
   Google Sites: host this on https (Neocities), then Insert → Embed → By URL.
@@ -34,8 +34,12 @@
     width: 280px; max-width: 42%; overflow: auto; background: #101418;
     border-right: 1px solid #3a3226; flex: 0 0 auto;
   }
-  body.playing #side { display: none; }
-  #tabs { display: flex; position: sticky; top: 0; background: #101418; padding: 8px; gap: 4px; z-index: 1; }
+  #tools { position: sticky; top: 0; z-index: 1; background: #101418; padding: 8px 8px 4px; }
+  #tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+  #q {
+    display: block; width: 100%; box-sizing: border-box; background: #1a1814; color: #f0e0c0;
+    border: 1px solid #4a4030; padding: 8px 10px; font: 13px Georgia, serif;
+  }
   #list { padding: 0 8px 12px; }
   .g {
     display: block; width: 100%; text-align: left; margin: 0 0 4px;
@@ -59,24 +63,26 @@
 </head>
 <body>
 <div id="bar">
-  <h1>FLASH + DS</h1>
-  <input id="q" type="search" placeholder="Search games" autocomplete="off">
+  <h1>WHY REVIVED</h1>
   <button type="button" id="back">LIST</button>
   <button type="button" id="full">FULL</button>
   <span id="stat">loading…</span>
 </div>
 <div id="main">
   <div id="side">
-    <div id="tabs">
-      <button type="button" class="on" data-tab="all">ALL</button>
-      <button type="button" data-tab="flash">RUFFLE</button>
-      <button type="button" data-tab="nds">DS</button>
-      <button type="button" data-tab="web">HTML</button>
+    <div id="tools">
+      <div id="tabs">
+        <button type="button" class="on" data-tab="all">ALL</button>
+        <button type="button" data-tab="flash">RUFFLE</button>
+        <button type="button" data-tab="nds">DS</button>
+        <button type="button" data-tab="web">HTML</button>
+      </div>
+      <input id="q" type="search" placeholder="Search games" autocomplete="off">
     </div>
     <div id="list"></div>
   </div>
   <div id="play">
-    <div id="empty">Pick a game. Flash loads through Ruffle from jsDelivr / Bunny CDN.</div>
+    <div id="empty">Pick a game.</div>
     <iframe id="frame" title="game" allow="autoplay; fullscreen; gamepad; clipboard-write; xr-spatial-tracking" allowfullscreen></iframe>
   </div>
 </div>
