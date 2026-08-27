@@ -6,8 +6,8 @@
 <title>Why Revived</title>
 <!--
   One file. Inline CSS + JS only.
-  Google Sites: host this on https (Neocities), then Insert → Embed → By URL.
-  Drag the embed tall (700px+). Games load from jsDelivr / Bunny CDN.
+  Google Sites: upload this file to Neocities, then Insert → Embed → Embed code
+  (not By URL — that shows a question mark). Paste why-revived-google-sites-embed.html.
   Games load from jsDelivr / Bunny CDN (jsdelivr.b-cdn.net). Block list is the
   ROM/SWF/JSON the page points at, not the HTML filename.
 -->
@@ -59,6 +59,19 @@
     color: #8a7a62; text-align: center; padding: 24px; pointer-events: none;
   }
   #empty.hide { display: none; }
+  #note {
+    position: fixed; right: 16px; bottom: 16px; z-index: 50; display: none;
+    width: 320px; max-width: calc(100% - 24px); padding: 12px 32px 12px 14px;
+    background: #171410; color: #f0e0c0; border: 1px solid #c8a060;
+    font: 13px/1.4 Georgia, serif;
+  }
+  #note.on { display: block; }
+  #note b { display: block; font-weight: 400; letter-spacing: 1px; color: #c8b490; font-size: 11px; margin-bottom: 4px; }
+  #note p { margin: 0; color: #f0e0c0; }
+  #note .x {
+    position: absolute; top: 6px; right: 8px; border: 0; background: transparent;
+    color: #8a7a62; font: 16px Georgia, serif; cursor: pointer; padding: 2px 6px;
+  }
 </style>
 </head>
 <body>
@@ -86,6 +99,11 @@
     <iframe id="frame" title="game" allow="autoplay; fullscreen; gamepad; clipboard-write; xr-spatial-tracking" allowfullscreen></iframe>
   </div>
 </div>
+<div id="note">
+  <b>Why Revived</b>
+  <p id="noteMsg">yk i cant load roblox, sorry...</p>
+  <button type="button" class="x" id="noteX" aria-label="close">×</button>
+</div>
 <script>
 (function () {
   var CDN = "https://cdn.jsdelivr.net/gh/";
@@ -111,13 +129,19 @@
     "riddle-school-3.html": "Riddle School 3",
     "riddle-school-4.html": "Riddle School 4",
     "riddle-school-5": "Riddle School 5",
+    "seraph/fnaf": "FNAF",
+    "halflife.html": "Half-Life",
+    "seraph/halflife": "Half-Life",
+    "seraph/half-life": "Half-Life",
     "riddle-transfer.html": "Riddle Transfer",
     "riddle-transfer-2.html": "Riddle Transfer 2",
     "gun-mayhem.html": "Gun Mayhem",
     "gun-mayhem-2.html": "Gun Mayhem 2",
     "gun-mayhem-redux.html": "Gun Mayhem Redux",
     "ragdoll-archers/index.html": "Ragdoll Archers",
-    "seraph/fnaf": "FNAF",
+    "infinite-craft.html": "Infinite Craft",
+    "drive-mad.html": "Drive Mad",
+    "escape-road.html": "Escape Road",
     "pokemon-mone-vol-ve-ds-fd-gs-dfs.html": "Pokemon (DS)",
     "pokemon-moneme-ra-lds-ea-glass.html": "Pokemon (DS)",
     "pokes-cor-che-dsi-lv-er.html": "Pokemon (DSi)",
@@ -152,13 +176,13 @@
     ["cactus-mccoy-2.html", "flash"],
     ["dad-nm-e.html", "flash"],
     ["defend-your-castle.html", "flash"],
-    ["riddle-school.html", "flash"],
-    ["riddle-school-2.html", "flash"],
-    ["riddle-school-3.html", "flash"],
-    ["riddle-school-4.html", "flash"],
+    ["riddle-school.html", "flash", CDN + SERAPH + "games/riddleschool/riddleschool1/index.html"],
+    ["riddle-school-2.html", "flash", CDN + SERAPH + "games/riddleschool/riddleschool2/index.html"],
+    ["riddle-school-3.html", "flash", CDN + SERAPH + "games/riddleschool/riddleschool3/index.html"],
+    ["riddle-school-4.html", "flash", CDN + SERAPH + "games/riddleschool/riddleschool4/index.html"],
     ["riddle-school-5", "flash", CDN + SERAPH + "games/riddleschool/riddleschool5/index.html"],
-    ["riddle-transfer.html", "flash"],
-    ["riddle-transfer-2.html", "flash"],
+    ["riddle-transfer.html", "flash", CDN + SERAPH + "games/riddleschool/riddletransfer/index.html"],
+    ["riddle-transfer-2.html", "flash", CDN + SERAPH + "games/riddleschool/riddletransfer2/index.html"],
     ["gun-mayhem.html", "flash"],
     ["gun-mayhem-2.html", "web"],
     ["gun-mayhem-redux.html", "flash"],
@@ -166,7 +190,13 @@
     ["cookie-clicker.html", "web"],
     ["granny.html", "web"],
     ["granny-2-2.html", "web"],
+    ["infinite-craft.html", "web"],
+    ["drive-mad.html", "web"],
+    ["escape-road.html", "web"],
     ["seraph/fnaf", "web", CDN + SERAPH + "games/fnaf/index.html"],
+    ["halflife.html", "web"],
+    ["seraph/halflife", "web", CDN + SERAPH + "games/halflife/index.html"],
+    ["seraph/half-life", "web", CDN + SERAPH + "games/half-life/index.html"],
     ["mario-kart-ds.html", "nds"],
     ["mario-party-ds.html", "nds"],
     ["super-mario-64-ds.html", "nds"],
@@ -181,7 +211,11 @@
     "cooking-mama.html": 1,
     "10-minutes-till-dawn.html": 1,
     "granny-2.html": 1,
-    "achievement-unlocked-3.html": 1
+    "achievement-unlocked-3.html": 1,
+    "little-alchemy-2": 1,
+    "little-alchemy-2/index.html": 1,
+    "infinitecraft": 1,
+    "seraph/infinitecraft": 1
   };
   var games = {};
   var tab = "all";
@@ -256,11 +290,22 @@
     if (/cooking\s*mama/.test(s) && /\(usa\)\.zip|%20\(usa\)\.zip/.test(String(u).toLowerCase()) && !/mama\s*2|mama%202/.test(s)) return true;
     if (/\/fnaf-2\b|\/fnaf-3\b|\/fnaf2\b|\/fnaf3\b/.test(s)) return true;
     if (/achievement-unlocked-3\.swf|achievementunlocked3/.test(s)) return true;
+    if (/\binfinitecraft\b/.test(s) && !/infinite-craft\.html/.test(s)) return true;
+    return false;
+  }
+
+  function folderSite(file) {
+    var p = String(file || "");
+    if (!p) return true;
+    if (/ragdoll-archers|riddle-?school|riddle-?transfer|(^|\/)fnaf$|(^|\/)half-?life/i.test(p)) return false;
+    if (p.indexOf("/") !== -1) return true;
+    if (/^seraph\//i.test(p)) return true;
     return false;
   }
 
   function add(file, kind, dest) {
-    if (!file || BLOCK_FILE[file] || games[file]) return;
+    if (!file || BLOCK_FILE[file] || BLOCK_FILE[file.replace(/\/index\.html$/i, "")] || games[file]) return;
+    if (folderSite(file)) return;
     dest = dest ? cleanUrl(dest) : "";
     if (dest && destBlocked(dest)) return;
     games[file] = { file: file, kind: kind, name: titleOf(file), dest: dest };
@@ -339,17 +384,58 @@
     return String(url || "").replace(/[#?].*$/, "").replace(/[^/]+$/, "");
   }
 
-  function withBase(html, base) {
+  function rewriteRootUrls(html, base) {
+    if (!base) return html;
+    var root = String(base).replace(/\/?$/, "/");
+    html = html.replace(/(\s(?:src|href|poster)=["'])\/(?!\/)/gi, "$1" + root);
+    html = html.replace(/(url\(\s*['"]?)\/(?!\/)/gi, "$1" + root);
+    return html;
+  }
+
+  function pathPatcher(base) {
+    var root = String(base || "").replace(/\/?$/, "");
+    if (!root) return "";
+    return "<script>(function(B){function f(u){if(typeof u!=='string')return u;if(u.charAt(0)==='/'&&u.charAt(1)!=='/')return B+u;return u;}" +
+      "var F=window.fetch;if(F)window.fetch=function(i,n){if(typeof i==='string')i=f(i);else if(i&&typeof Request==='function'&&i instanceof Request)i=new Request(f(i.url),i);return F.call(this,i,n);};" +
+      "var X=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){if(typeof u==='string')arguments[1]=f(u);return X.apply(this,arguments);};" +
+      "function hook(proto,prop){try{var d=Object.getOwnPropertyDescriptor(proto,prop);if(!d||!d.set)return;Object.defineProperty(proto,prop,{configurable:true,enumerable:d.enumerable,get:d.get,set:function(v){d.set.call(this,f(v));}});}catch(e){}}" +
+      "if(window.HTMLImageElement)hook(HTMLImageElement.prototype,'src');" +
+      "if(window.HTMLScriptElement)hook(HTMLScriptElement.prototype,'src');" +
+      "if(window.HTMLLinkElement)hook(HTMLLinkElement.prototype,'href');" +
+      "var SA=Element.prototype.setAttribute;Element.prototype.setAttribute=function(n,v){if((n==='src'||n==='href'||n==='poster')&&typeof v==='string')v=f(v);return SA.call(this,n,v);};" +
+      "})(" + JSON.stringify(root) + ");<\/script>";
+  }
+
+  function fixGameHtml(html) {
     html = String(html || "");
+    html = html.replace(/\s*type=(["'])[0-9a-f]{6,}-text\/javascript\1/gi, "");
+    html = html.replace(/<script[^>]*\beruda\b[^>]*><\/script>/gi, "");
+    html = html.replace(/<script[^>]*>\s*eruda\.init\(\)\s*<\/script>/gi, "");
+    return html;
+  }
+
+  function ownCdnBase(html) {
+    var m = String(html || "").match(/<base[^>]*href=["'](https?:\/\/(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)[^"']+)["']/i);
+    return m ? m[1] : "";
+  }
+
+  function withBase(html, base) {
+    html = fixGameHtml(html);
     html = html.replace(/https?:\/\/(?:rawcdn\.|cdn\.)?githack\.com\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^"'\s]+)/gi, function (_, a, b, c, d) {
       return "https://raw.githubusercontent.com/" + a + "/" + b + "/" + c + "/" + d;
     });
     html = html.replace(/https?:\/\/unpkg\.com\/@ruffle-rs\/ruffle[^"']*/gi, RUFFLE);
     html = html.replace(/(src\s*=\s*["'])[^"']*ruffle\/ruffle\.js["']/gi, "$1" + RUFFLE + '"');
+    if (ownCdnBase(html)) return html;
+    html = rewriteRootUrls(html, base);
+    var patch = pathPatcher(base);
     if (base && !/<base[\s>]/i.test(html)) {
-      if (/<head[^>]*>/i.test(html)) html = html.replace(/<head([^>]*)>/i, "<head$1><base href=\"" + base + "\">");
-      else if (/<html[^>]*>/i.test(html)) html = html.replace(/<html([^>]*)>/i, "<html$1><head><base href=\"" + base + "\"></head>");
-      else html = "<base href=\"" + base + "\">" + html;
+      if (/<head[^>]*>/i.test(html)) html = html.replace(/<head([^>]*)>/i, "<head$1><base href=\"" + base + "\">" + patch);
+      else if (/<html[^>]*>/i.test(html)) html = html.replace(/<html([^>]*)>/i, "<html$1><head><base href=\"" + base + "\">" + patch + "</head>");
+      else html = "<base href=\"" + base + "\">" + patch + html;
+    } else if (patch) {
+      if (/<head[^>]*>/i.test(html)) html = html.replace(/<head([^>]*)>/i, "<head$1>" + patch);
+      else html = patch + html;
     }
     return html;
   }
@@ -364,8 +450,9 @@
     }
     if (/ruffle\.js|createPlayer\(|swfUrl/i.test(text) && /\.swf/i.test(text)) return { kind: "flash", url: "" };
     if (/EJS_core\s*=\s*["']nds["']/i.test(text)) return { kind: "nds", url: "" };
-    if (/createUnityInstance|UnityLoader|unity-canvas|productName["']:\s*["']Granny/i.test(text)) return { kind: "web", url: "" };
+    if (/createUnityInstance|UnityLoader|unity-canvas|poki-sdk|emscripten|productName["']:\s*["']Granny/i.test(text)) return { kind: "web", url: "" };
     if (/bobydob\/JSEngine|cc\.xml/i.test(text)) return { kind: "web", url: "" };
+    if (/little.?alchemy|infinite.?craft|nova craft|drive.?mad|escape.?road|id=["']game-container["']/i.test(text)) return { kind: "web", url: "" };
     return null;
   }
 
@@ -404,7 +491,8 @@
       "<style id='embed-fit'>html,body{margin:0!important;width:100%!important;height:100%!important;min-height:100%!important;background:#000" +
       (shell ? ";overflow:hidden!important" : "") + "}" +
       "ruffle-player,ruffle-embed,ruffle-object{display:block!important;width:100%!important;height:100%!important}" +
-      (shell ? "#game,#unity-canvas,#unityContainer{width:100%!important;height:100%!important}" : "") + "</style>" +
+      (shell ? "#game,#unity-canvas,#unityContainer{width:100%!important;height:100%!important}" : "") +
+      ".unsupported-container,.unsupported-text{display:none!important}</style>" +
       "<script id='embed-fit-js'>(function(){" +
       "window.RufflePlayer=window.RufflePlayer||{};" +
       "window.RufflePlayer.config=Object.assign({autoplay:'on',unmuteOverlay:'hidden',letterbox:'on',backgroundColor:'#000000',preferredRenderer:" + JSON.stringify(renderer) + "},window.RufflePlayer.config||{});" +
@@ -448,7 +536,8 @@
     layout();
     var frame = document.getElementById("frame");
     frame.removeAttribute("src");
-    frame.srcdoc = injectFit(html);
+    var skipFit = !!(ownCdnBase(html) || /createUnityInstance|poki-sdk|emscripten|type=["']module["']/i.test(html));
+    frame.srcdoc = skipFit ? html : injectFit(html);
     frame.onload = function () {
       layout();
       try { frame.contentWindow.dispatchEvent(new Event("resize")); } catch (e) {}
@@ -486,9 +575,23 @@
     return liteUrl(g.file);
   }
 
+  var noteTimer = 0;
+  function chromeNote(msg) {
+    var el = document.getElementById("note");
+    document.getElementById("noteMsg").textContent = msg;
+    el.className = "on";
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(function () { el.className = ""; }, 6000);
+  }
+
   async function play(file) {
     var g = games[file];
     if (!g) return;
+    var blob = (g.file + " " + g.name + " " + (g.dest || "")).toLowerCase();
+    if (/roblox/.test(blob)) {
+      chromeNote("yk i cant load roblox, sorry...");
+      return;
+    }
     sel = file;
     document.body.className = "playing";
     document.getElementById("empty").className = "hide";
@@ -506,9 +609,15 @@
         g.dest = abs;
         if (info.kind) g.kind = info.kind;
       }
-      var html = innerHtml(txt);
-      if (html && /<html|ruffle|createUnityInstance|EJS_|unity-canvas|swfUrl|waf/i.test(html)) {
-        show(withBase(html, dirOf(mirrors(url)[0])));
+      var html = fixGameHtml(innerHtml(txt));
+      var cdnPage = ownCdnBase(html);
+      var needsFix = /[0-9a-f]{8,}-text\/javascript/i.test(txt);
+      if (cdnPage && !needsFix) {
+        playUrl(mirrors(url)[0]);
+        return;
+      }
+      if (html && /<html|ruffle|createUnityInstance|EJS_|unity-canvas|swfUrl|waf|poki-sdk|emscripten/i.test(html)) {
+        show(withBase(html, cdnPage || dirOf(mirrors(url)[0])));
         return;
       }
     } catch (e) {}
@@ -533,13 +642,13 @@
 
   function saveCache() {
     try {
-      localStorage.setItem("liteFlashDs5", JSON.stringify({ t: Date.now(), games: games }));
+      localStorage.setItem("liteFlashDs7", JSON.stringify({ t: Date.now(), games: games }));
     } catch (e) {}
   }
 
   function loadCache() {
     try {
-      var raw = localStorage.getItem("liteFlashDs5");
+      var raw = localStorage.getItem("liteFlashDs7");
       if (!raw) return;
       var data = JSON.parse(raw);
       if (!data || !data.games || Date.now() - data.t > 7 * 24 * 60 * 60 * 1000) return;
@@ -559,16 +668,12 @@
     } catch (e) {
       return;
     }
-    files.forEach(function (f) {
-      if (!f || f.type !== "dir" || BLOCK_FILE[f.name] || destBlocked(f.name)) return;
-      add(f.name + "/index.html", "web", CDN + LITE + f.name + "/index.html");
-    });
     var queue = files.filter(function (f) {
       if (!f || f.type !== "file" || !/\.html$/i.test(f.name) || BLOCK_FILE[f.name]) return false;
       var n = f.name.toLowerCase();
       var sz = f.size || 0;
       if (n.indexOf("gba") !== -1 || n.indexOf("nes") !== -1 || n.indexOf("n64") !== -1) return false;
-      if (/flash|ruffle|swf|achill|riddle|cookie|granny|burger|fnaf|gun-mayhem|ragdoll/.test(n)) return true;
+      if (/flash|ruffle|swf|achill|riddle|cookie|granny|burger|fnaf|gun-mayhem|ragdoll|alchem|infinite-craft|drive-mad|escape-road/.test(n)) return true;
       if (/ds|dsi|nds/.test(n) && !/lands|roads|cards|words|birds|mods/.test(n)) return true;
       if (sz >= 900 && sz <= 1600) return true;
       if (sz >= 2400 && sz <= 4500) return true;
@@ -593,21 +698,7 @@
   }
 
   async function scanSeraph() {
-    var files;
-    try {
-      var res = await fetch("https://api.github.com/repos/a456pur/seraph/contents/games?ref=ae2fcc6d6a9cd051654fcc0519080db1f79cf2a7");
-      files = await res.json();
-      if (!Array.isArray(files)) return;
-    } catch (e) {
-      return;
-    }
-    files.forEach(function (f) {
-      if (!f || f.type !== "dir") return;
-      var id = "seraph/" + f.name;
-      var dest = CDN + SERAPH + "games/" + f.name + "/index.html";
-      if (destBlocked(dest) || destBlocked(f.name)) return;
-      add(id, "web", dest);
-    });
+    return;
   }
 
   async function scan() {
@@ -618,6 +709,9 @@
     render();
   }
 
+  document.getElementById("noteX").addEventListener("click", function () {
+    document.getElementById("note").className = "";
+  });
   document.getElementById("list").addEventListener("click", function (e) {
     var b = e.target.closest("[data-file]");
     if (b) play(b.getAttribute("data-file"));
