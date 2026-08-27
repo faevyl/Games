@@ -1,1 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flash + DS</title>
+<!--
+  One file. Inline CSS + JS only.
+  Google Sites: host this on https (Neocities), then Insert → Embed → By URL.
+  Games load from jsDelivr / Bunny CDN (jsdelivr.b-cdn.net). Block list is the
+  ROM/SWF/JSON the page points at, not the HTML filename.
+-->
+<style>
+  html, body { margin: 0; height: 100%; background: #0c1014; color: #e8dcc8; font-family: Georgia, serif; }
+  body { display: flex; flex-direction: column; overflow: hidden; }
+  #bar {
+    flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    padding: 10px 12px; background: #14181e; border-bottom: 1px solid #3a3226;
+  }
+  #bar h1 { margin: 0 8px 0 0; font-size: 16px; font-weight: 400; letter-spacing: 2px; color: #f0e0c0; }
+  #bar input {
+    flex: 1 1 160px; min-width: 120px; background: #1a1814; color: #f0e0c0;
+    border: 1px solid #4a4030; padding: 6px 8px; font: 13px Georgia, serif;
+  }
+  #bar button, #tabs button {
+    background: #1a1814; color: #c8b490; border: 1px solid #4a4030;
+    font: 12px Georgia, serif; padding: 6px 10px; cursor: pointer;
+  }
+  #bar button.on, #tabs button.on { background: #3a3020; color: #f0e0c0; border-color: #c8a060; }
+  #stat { font-size: 11px; color: #7a6a52; white-space: nowrap; }
+  #main { flex: 1 1 auto; display: flex; min-height: 0; }
+  #side {
+    width: 280px; max-width: 42vw; overflow: auto; background: #101418;
+    border-right: 1px solid #3a3226;
+  }
+  #tabs { display: flex; position: sticky; top: 0; background: #101418; padding: 8px; gap: 4px; z-index: 1; }
+  #list { padding: 0 8px 12px; }
+  .g {
+    display: block; width: 100%; text-align: left; margin: 0 0 4px;
+    background: #171410; color: #d8c4a0; border: 1px solid #2a241c;
+    font: 13px Georgia, serif; padding: 8px 10px; cursor: pointer;
+  }
+  .g:hover, .g.sel { border-color: #c8a060; color: #f0e0c0; }
+  .g b { display: block; font-weight: 400; color: #f0e0c0; }
+  .g i { font-style: normal; font-size: 11px; color: #8a7a62; }
+  #play { flex: 1 1 auto; position: relative; background: #000; min-width: 0; }
+  #play iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
+  #empty {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #8a7a62; text-align: center; padding: 24px; pointer-events: none;
+  }
+  #empty.hide { display: none; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <h1>FLASH + DS</h1>
+  <input id="q" type="search" placeholder="Search games" autocomplete="off">
+  <button type="button" id="back">LIST</button>
+  <button type="button" id="full">FULL</button>
+  <span id="stat">loading…</span>
+</div>
+<div id="main">
+  <div id="side">
+    <div id="tabs">
+      <button type="button" class="on" data-tab="all">ALL</button>
+      <button type="button" data-tab="flash">RUFFLE</button>
+      <button type="button" data-tab="nds">DS</button>
+      <button type="button" data-tab="web">HTML</button>
+    </div>
+    <div id="list"></div>
+  </div>
+  <div id="play">
+    <div id="empty">Pick a game. Flash loads through Ruffle from jsDelivr / Bunny CDN.</div>
+    <iframe id="frame" title="game" allow="autoplay; fullscreen; gamepad; clipboard-write" allowfullscreen></iframe>
+  </div>
+</div>
+<script>
+(function () {
+  var CDN = "https://cdn.jsdelivr.net/gh/";
+  var BUNNY = "https://jsdelivr.b-cdn.net/gh/";
+  var LITE = "Craf1ed/lite-assets@main/";
+  var SERAPH = "a456pur/seraph@ae2fcc6d6a9cd051654fcc0519080db1f79cf2a7/";
+  var RUFFLE = CDN + "u-cvlassrom-y/google@main/ruffle.js";
+  var EJS = CDN + "a456pur/seraph@81f551ca0aa8e3d6018d32d8ac5904ac9bc78f76/storage/emulatorjs/data";
+  var API = "https://api.github.com/repos/Craf1ed/lite-assets/contents/";
+  var NAMES = {
+    "achillies-1-fr.html": "Achilles 1",
+    "achillies-2.html": "Achilles 2",
+    "dad-nm-e.html": "Dad n Me",
+    "meat-boy-flash.html": "Super Meat Boy (Flash)",
+    "portal-flash.html": "Portal (Flash)",
+    "ruffle.html": "Ruffle Player",
+    "60-seconds-burger-run.html": "60 Second Burger Run",
+    "cookie-clicker.html": "Cookie Clicker",
+    "granny.html": "Granny",
+    "granny-2-2.html": "Granny 2",
+    "riddle-school.html": "Riddle School",
+    "riddle-school-2.html": "Riddle School 2",
+    "riddle-school-3.html": "Riddle School 3",
+    "riddle-school-4.html": "Riddle School 4",
+    "riddle-school-5": "Riddle School 5",
+    "riddle-transfer.html": "Riddle Transfer",
+    "riddle-transfer-2.html": "Riddle Transfer 2",
+    "gun-mayhem.html": "Gun Mayhem",
+    "gun-mayhem-2.html": "Gun Mayhem 2",
+    "gun-mayhem-redux.html": "Gun Mayhem Redux",
+    "ragdoll-archers/index.html": "Ragdoll Archers",
+    "seraph/fnaf": "FNAF",
+    "pokemon-mone-vol-ve-ds-fd-gs-dfs.html": "Pokemon (DS)",
+    "pokemon-moneme-ra-lds-ea-glass.html": "Pokemon (DS)",
+    "pokes-cor-che-dsi-lv-er.html": "Pokemon (DSi)",
+    "super-mario-64-ds.html": "Super Mario 64 DS",
+    "mario-kart-ds.html": "Mario Kart DS",
+    "mario-party-ds.html": "Mario Party DS",
+    "animal-crossing-wild-world.html": "Animal Crossing: Wild World"
+  };
+  var SEED = [
+    ["achillies-1-fr.html", "flash"],
+    ["achillies-2.html", "flash"],
+    ["60-seconds-burger-run.html", "flash"],
+    ["ruffle.html", "flash"],
+    ["happy-wheels.html", "flash"],
+    ["super-mario-63.html", "flash"],
+    ["meat-boy-flash.html", "flash"],
+    ["portal-flash.html", "flash"],
+    ["impossible-quiz.html", "flash"],
+    ["achievement-unlocked.html", "flash"],
+    ["achievement-unlocked-2.html", "flash"],
+    ["age-of-war.html", "flash"],
+    ["age-of-war-2.html", "flash"],
+    ["alien-hominid.html", "flash"],
+    ["bloons.html", "flash"],
+    ["bloons-2.html", "flash"],
+    ["bloons-td-1.html", "flash"],
+    ["bloons-td-2.html", "flash"],
+    ["bloons-td-3.html", "flash"],
+    ["bloons-td-4.html", "flash"],
+    ["bloons-td-5.html", "flash"],
+    ["cactus-mccoy.html", "flash"],
+    ["cactus-mccoy-2.html", "flash"],
+    ["dad-nm-e.html", "flash"],
+    ["defend-your-castle.html", "flash"],
+    ["riddle-school.html", "flash"],
+    ["riddle-school-2.html", "flash"],
+    ["riddle-school-3.html", "flash"],
+    ["riddle-school-4.html", "flash"],
+    ["riddle-school-5", "flash", CDN + SERAPH + "games/riddleschool/riddleschool5/index.html"],
+    ["riddle-transfer.html", "flash"],
+    ["riddle-transfer-2.html", "flash"],
+    ["gun-mayhem.html", "flash"],
+    ["gun-mayhem-2.html", "web"],
+    ["gun-mayhem-redux.html", "flash"],
+    ["ragdoll-archers/index.html", "web", CDN + LITE + "ragdoll-archers/index.html"],
+    ["cookie-clicker.html", "web"],
+    ["granny.html", "web"],
+    ["granny-2-2.html", "web"],
+    ["seraph/fnaf", "web", CDN + SERAPH + "games/fnaf/index.html"],
+    ["mario-kart-ds.html", "nds"],
+    ["mario-party-ds.html", "nds"],
+    ["super-mario-64-ds.html", "nds"],
+    ["animal-crossing-wild-world.html", "nds"],
+    ["cooking-mama-2.html", "nds"],
+    ["cooking-mama-3.html", "nds"],
+    ["pokemon-mone-vol-ve-ds-fd-gs-dfs.html", "nds"],
+    ["pokemon-moneme-ra-lds-ea-glass.html", "nds"],
+    ["pokes-cor-che-dsi-lv-er.html", "nds"]
+  ];
+  var BLOCK_FILE = {
+    "cooking-mama.html": 1,
+    "10-minutes-till-dawn.html": 1,
+    "granny-2.html": 1,
+    "achievement-unlocked-3.html": 1
+  };
+  var games = {};
+  var tab = "all";
+  var sel = null;
+  var query = "";
 
+  function titleOf(file) {
+    if (NAMES[file]) return NAMES[file];
+    return file.replace(/^seraph\//, "").replace(/\/index\.html$/i, "").replace(/\.html$/i, "").replace(/-/g, " ").replace(/\b\w/g, function (c) {
+      return c.toUpperCase();
+    });
+  }
+
+  function parseRepo(url) {
+    url = String(url || "").replace(/&amp;/g, "&");
+    var m = url.match(/^https?:\/\/(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)\/gh\/([^\/]+)\/([^@\/]+)@([^\/]+)\/(.+)$/i);
+    if (m) return { user: m[1], repo: m[2], ref: m[3], path: m[4] };
+    m = url.match(/^https?:\/\/raw\.githubusercontent\.com\/([^\/]+)\/([^\/]+)\/(?:refs\/heads\/)?([^\/]+)\/(.+)$/i);
+    if (m) return { user: m[1], repo: m[2], ref: m[3], path: m[4] };
+    m = url.match(/^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/(?:raw|blob)\/([^\/]+)\/(.+)$/i);
+    if (m) return { user: m[1], repo: m[2], ref: m[3], path: m[4] };
+    m = url.match(/^https?:\/\/(?:rawcdn\.|cdn\.)?githack\.com\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)$/i);
+    if (m) return { user: m[1], repo: m[2], ref: m[3], path: m[4] };
+    return null;
+  }
+
+  function githubRaw(p) {
+    return "https://raw.githubusercontent.com/" + p.user + "/" + p.repo + "/" + p.ref + "/" + p.path;
+  }
+
+  function cdnUrl(p) {
+    return CDN + p.user + "/" + p.repo + "@" + p.ref + "/" + p.path;
+  }
+
+  function bunnyUrl(p) {
+    return BUNNY + p.user + "/" + p.repo + "@" + p.ref + "/" + p.path;
+  }
+
+  // githack is blocked. GitHub, jsDelivr, and Bunny CDN are not.
+  function cleanUrl(url) {
+    url = String(url || "").replace(/&amp;/g, "&");
+    if (/githack\.com/i.test(url)) {
+      var p = parseRepo(url);
+      if (p) return githubRaw(p);
+    }
+    return url;
+  }
+
+  function mirrors(url) {
+    var cleaned = cleanUrl(url);
+    var p = parseRepo(cleaned);
+    var out = [];
+    function push(u) {
+      if (u && !/githack\.com/i.test(u) && out.indexOf(u) === -1) out.push(u);
+    }
+    if (p) {
+      push(cdnUrl(p));
+      push(bunnyUrl(p));
+      push(githubRaw(p));
+    } else {
+      push(cleaned);
+    }
+    return out;
+  }
+
+  function destBlocked(u) {
+    var s = String(u || "");
+    try { s = decodeURIComponent(s.replace(/\+/g, " ")); } catch (e) {}
+    s = s.toLowerCase();
+    if (/10minutestilldawn|10 minutes till dawn/.test(s)) return true;
+    if (/cooking\s*mama/.test(s) && /\(usa\)\.zip|%20\(usa\)\.zip/.test(String(u).toLowerCase()) && !/mama\s*2|mama%202/.test(s)) return true;
+    if (/\/fnaf-2\b|\/fnaf-3\b|\/fnaf2\b|\/fnaf3\b/.test(s)) return true;
+    if (/achievement-unlocked-3\.swf|achievementunlocked3/.test(s)) return true;
+    return false;
+  }
+
+  function add(file, kind, dest) {
+    if (!file || BLOCK_FILE[file] || games[file]) return;
+    dest = dest ? cleanUrl(dest) : "";
+    if (dest && destBlocked(dest)) return;
+    games[file] = { file: file, kind: kind, name: titleOf(file), dest: dest };
+  }
+
+  SEED.forEach(function (row) { add(row[0], row[1], row[2]); });
+
+  function kindLabel(kind) {
+    if (kind === "nds") return "Nintendo DS";
+    if (kind === "web") return "HTML5";
+    return "Ruffle Flash";
+  }
+
+  function listGames() {
+    var rows = Object.keys(games).map(function (k) { return games[k]; });
+    rows.sort(function (a, b) {
+      if (a.file.indexOf("achillies") === 0 && b.file.indexOf("achillies") !== 0) return -1;
+      if (b.file.indexOf("achillies") === 0 && a.file.indexOf("achillies") !== 0) return 1;
+      return a.name.localeCompare(b.name);
+    });
+    var q = query.trim().toLowerCase();
+    return rows.filter(function (g) {
+      if (tab !== "all" && g.kind !== tab) return false;
+      if (!q) return true;
+      return (g.name + " " + g.file + " " + g.kind).toLowerCase().indexOf(q) !== -1;
+    });
+  }
+
+  function render() {
+    var rows = listGames();
+    var flashN = 0, dsN = 0, webN = 0, k;
+    for (k in games) {
+      if (games[k].kind === "flash") flashN++;
+      else if (games[k].kind === "nds") dsN++;
+      else webN++;
+    }
+    document.getElementById("stat").textContent = flashN + " ruffle · " + dsN + " ds · " + webN + " html";
+    document.getElementById("list").innerHTML = rows.map(function (g) {
+      return '<button type="button" class="g' + (sel === g.file ? " sel" : "") + '" data-file="' + g.file.replace(/"/g, "") + '">' +
+        "<b>" + g.name.replace(/</g, "") + "</b><i>" + kindLabel(g.kind) + "</i></button>";
+    }).join("") || '<div style="padding:12px;color:#7a6a52">No matches.</div>';
+  }
+
+  function extractDest(text) {
+    var m = text.match(/EJS_gameUrl\s*=\s*["']([^"']+)["']/i);
+    if (m) return { kind: "nds", url: m[1] };
+    m = text.match(/swfUrl\s*:\s*["']([^"']+)["']/i);
+    if (m) return { kind: "flash", url: m[1] };
+    m = text.match(/<param[^>]*name=["']movie["'][^>]*value=["']([^"']+)["']/i) ||
+      text.match(/value=["'](https?:\/\/[^"']+\.swf[^"']*)["']/i) ||
+      text.match(/<embed[^>]*src=["']([^"']+\.swf[^"']*)["']/i);
+    if (m) return { kind: "flash", url: m[1] };
+    m = text.match(/player\.load\(\s*["']([^"']+\.swf)["']/i);
+    if (m) return { kind: "flash", url: m[1] };
+    m = text.match(/UnityLoader\.instantiate\s*\([^,]+,\s*["']([^"']+)["']/i);
+    if (m) return { kind: "web", url: m[1] };
+    m = text.match(/<iframe[^>]*src=["']([^"']+)["']/i);
+    if (m) return { kind: "web", url: m[1] };
+    m = text.match(/buildUrl\s*=\s*["']([^"']+)["']/i);
+    if (m) return { kind: "web", url: m[1] };
+    return null;
+  }
+
+  function innerHtml(text) {
+    var m = text.match(/<!\[CDATA\[([\s\S]*?)\]\]>/i);
+    if (m) return m[1];
+    var start = text.search(/<html[\s>]/i);
+    if (start >= 0) {
+      var html = text.slice(start);
+      return html.replace(/\]\]>\s*<\/Content>[\s\S]*$/i, "");
+    }
+    return text;
+  }
+
+  function dirOf(url) {
+    return String(url || "").replace(/[#?].*$/, "").replace(/[^/]+$/, "");
+  }
+
+  function withBase(html, base) {
+    html = String(html || "");
+    html = html.replace(/https?:\/\/(?:rawcdn\.|cdn\.)?githack\.com\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^"'\s]+)/gi, function (_, a, b, c, d) {
+      return "https://raw.githubusercontent.com/" + a + "/" + b + "/" + c + "/" + d;
+    });
+    html = html.replace(/https?:\/\/unpkg\.com\/@ruffle-rs\/ruffle[^"']*/gi, RUFFLE);
+    html = html.replace(/(src\s*=\s*["'])[^"']*ruffle\/ruffle\.js["']/gi, "$1" + RUFFLE + '"');
+    if (base && !/<base[\s>]/i.test(html)) {
+      if (/<head[^>]*>/i.test(html)) html = html.replace(/<head([^>]*)>/i, "<head$1><base href=\"" + base + "\">");
+      else if (/<html[^>]*>/i.test(html)) html = html.replace(/<html([^>]*)>/i, "<html$1><head><base href=\"" + base + "\"></head>");
+      else html = "<base href=\"" + base + "\">" + html;
+    }
+    return html;
+  }
+
+  function classify(text) {
+    if (destBlocked(text)) return null;
+    var dest = extractDest(text);
+    if (dest) {
+      dest.url = cleanUrl(dest.url);
+      if (destBlocked(dest.url)) return null;
+      return dest;
+    }
+    if (/ruffle\.js|createPlayer\(|swfUrl/i.test(text) && /\.swf/i.test(text)) return { kind: "flash", url: "" };
+    if (/EJS_core\s*=\s*["']nds["']/i.test(text)) return { kind: "nds", url: "" };
+    if (/createUnityInstance|UnityLoader|unity-canvas|productName["']:\s*["']Granny/i.test(text)) return { kind: "web", url: "" };
+    if (/bobydob\/JSEngine|cc\.xml/i.test(text)) return { kind: "web", url: "" };
+    return null;
+  }
+
+  function ruffleDoc(swf) {
+    var src = cleanUrl(swf);
+    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body{margin:0;height:100%;background:#000;overflow:hidden}</style>" +
+      "<script src='" + RUFFLE + "'><\/script></head><body>" +
+      "<object width='100%' height='100%'><param name='movie' value='" + src.replace(/'/g, "") + "'>" +
+      "<embed src='" + src.replace(/'/g, "") + "' width='100%' height='100%'></object></body></html>";
+  }
+
+  function ndsDoc(rom) {
+    var url = cleanUrl(rom);
+    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body,#game{margin:0;height:100%;background:#000}</style></head><body>" +
+      "<div id='game'></div><script>EJS_player='#game';EJS_core='nds';EJS_color='#000000';EJS_startOnLoaded=true;" +
+      "EJS_pathtodata=" + JSON.stringify(EJS) + ";EJS_gameUrl=" + JSON.stringify(url) + ";<\/script>" +
+      "<script src='" + EJS + "/loader.js'><\/script></body></html>";
+  }
+
+  function show(html) {
+    var frame = document.getElementById("frame");
+    frame.removeAttribute("src");
+    frame.srcdoc = html;
+  }
+
+  function playUrl(url) {
+    document.getElementById("frame").srcdoc = "";
+    document.getElementById("frame").src = mirrors(url)[0] || cleanUrl(url);
+  }
+
+  async function fetchText(url) {
+    var list = mirrors(url);
+    var i, err;
+    for (i = 0; i < list.length; i++) {
+      try {
+        var res = await fetch(list[i]);
+        if (res.ok) return await res.text();
+        err = res.status;
+      } catch (e) { err = e; }
+    }
+    throw err;
+  }
+
+  function liteUrl(file) {
+    return CDN + LITE + file;
+  }
+
+  function pageUrl(g) {
+    if (g.dest && !/\.(swf|zip|json)($|\?)/i.test(g.dest)) return g.dest;
+    if (g.file.indexOf("http") === 0) return g.file;
+    if (g.file.indexOf("seraph/") === 0) return CDN + SERAPH + "games/" + g.file.slice(7) + "/index.html";
+    return liteUrl(g.file);
+  }
+
+  async function play(file) {
+    var g = games[file];
+    if (!g) return;
+    sel = file;
+    document.getElementById("empty").className = "hide";
+    render();
+    var url = pageUrl(g);
+    try {
+      var txt = await fetchText(url);
+      var info = classify(txt);
+      if (info && info.url) {
+        var abs = info.url;
+        if (!/^https?:/i.test(abs)) abs = dirOf(mirrors(url)[0]) + abs.replace(/^\.\//, "");
+        abs = cleanUrl(abs);
+        if (destBlocked(abs)) return;
+        g.dest = abs;
+        if (info.kind) g.kind = info.kind;
+      }
+      var html = innerHtml(txt);
+      if (html && /<html|ruffle|createUnityInstance|EJS_|unity-canvas|swfUrl|waf/i.test(html)) {
+        show(withBase(html, dirOf(mirrors(url)[0])));
+        return;
+      }
+    } catch (e) {}
+    var dest = g.dest;
+    if (dest && destBlocked(dest)) return;
+    if (g.kind === "flash" || (dest && /\.swf/i.test(dest))) {
+      if (dest) show(ruffleDoc(dest));
+      else playUrl(url);
+      return;
+    }
+    if (g.kind === "nds" && dest) {
+      show(ndsDoc(dest));
+      return;
+    }
+    if (dest && /\.json$/i.test(dest)) {
+      dest = dest.replace(/\/Build\/[^/]+\.json$/i, "/index.html");
+      if (destBlocked(dest)) return;
+      url = dest;
+    }
+    playUrl(url);
+  }
+
+  function saveCache() {
+    try {
+      localStorage.setItem("liteFlashDs5", JSON.stringify({ t: Date.now(), games: games }));
+    } catch (e) {}
+  }
+
+  function loadCache() {
+    try {
+      var raw = localStorage.getItem("liteFlashDs5");
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      if (!data || !data.games || Date.now() - data.t > 7 * 24 * 60 * 60 * 1000) return;
+      Object.keys(data.games).forEach(function (file) {
+        var g = data.games[file];
+        add(file, g.kind, g.dest);
+      });
+    } catch (e) {}
+  }
+
+  async function scanLite() {
+    var files;
+    try {
+      var res = await fetch(API);
+      files = await res.json();
+      if (!Array.isArray(files)) files = [];
+    } catch (e) {
+      return;
+    }
+    files.forEach(function (f) {
+      if (!f || f.type !== "dir" || BLOCK_FILE[f.name] || destBlocked(f.name)) return;
+      add(f.name + "/index.html", "web", CDN + LITE + f.name + "/index.html");
+    });
+    var queue = files.filter(function (f) {
+      if (!f || f.type !== "file" || !/\.html$/i.test(f.name) || BLOCK_FILE[f.name]) return false;
+      var n = f.name.toLowerCase();
+      var sz = f.size || 0;
+      if (n.indexOf("gba") !== -1 || n.indexOf("nes") !== -1 || n.indexOf("n64") !== -1) return false;
+      if (/flash|ruffle|swf|achill|riddle|cookie|granny|burger|fnaf|gun-mayhem|ragdoll/.test(n)) return true;
+      if (/ds|dsi|nds/.test(n) && !/lands|roads|cards|words|birds|mods/.test(n)) return true;
+      if (sz >= 900 && sz <= 1600) return true;
+      if (sz >= 2400 && sz <= 4500) return true;
+      return false;
+    });
+    var i = 0;
+    async function worker() {
+      while (i < queue.length) {
+        var f = queue[i++];
+        if (games[f.name]) continue;
+        try {
+          var txt = await fetchText(liteUrl(f.name));
+          var info = classify(txt);
+          if (info) {
+            add(f.name, info.kind, info.url);
+            render();
+          }
+        } catch (e) {}
+      }
+    }
+    await Promise.all([worker(), worker(), worker(), worker()]);
+  }
+
+  async function scanSeraph() {
+    var files;
+    try {
+      var res = await fetch("https://api.github.com/repos/a456pur/seraph/contents/games?ref=ae2fcc6d6a9cd051654fcc0519080db1f79cf2a7");
+      files = await res.json();
+      if (!Array.isArray(files)) return;
+    } catch (e) {
+      return;
+    }
+    files.forEach(function (f) {
+      if (!f || f.type !== "dir") return;
+      var id = "seraph/" + f.name;
+      var dest = CDN + SERAPH + "games/" + f.name + "/index.html";
+      if (destBlocked(dest) || destBlocked(f.name)) return;
+      add(id, "web", dest);
+    });
+  }
+
+  async function scan() {
+    document.getElementById("stat").textContent = "scanning…";
+    await scanLite();
+    await scanSeraph();
+    saveCache();
+    render();
+  }
+
+  document.getElementById("list").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-file]");
+    if (b) play(b.getAttribute("data-file"));
+  });
+  document.getElementById("tabs").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-tab]");
+    if (!b) return;
+    tab = b.getAttribute("data-tab");
+    [].forEach.call(document.querySelectorAll("#tabs button"), function (x) {
+      x.className = x === b ? "on" : "";
+    });
+    render();
+  });
+  document.getElementById("q").addEventListener("input", function () {
+    query = this.value;
+    render();
+  });
+  document.getElementById("back").addEventListener("click", function () {
+    var frame = document.getElementById("frame");
+    frame.srcdoc = "";
+    frame.src = "about:blank";
+    document.getElementById("empty").className = "";
+    sel = null;
+    render();
+  });
+  document.getElementById("full").addEventListener("click", function () {
+    var box = document.getElementById("play");
+    if (box.requestFullscreen) box.requestFullscreen();
+  });
+
+  loadCache();
+  render();
+  scan();
+})();
+</script>
+</body>
+</html>
