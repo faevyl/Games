@@ -7,11 +7,12 @@
 <!--
   One file. Inline CSS + JS only.
   Google Sites: host this on https (Neocities), then Insert → Embed → By URL.
+  Drag the embed tall (700px+). Games load from jsDelivr / Bunny CDN.
   Games load from jsDelivr / Bunny CDN (jsdelivr.b-cdn.net). Block list is the
   ROM/SWF/JSON the page points at, not the HTML filename.
 -->
 <style>
-  html, body { margin: 0; height: 100%; background: #0c1014; color: #e8dcc8; font-family: Georgia, serif; }
+  html, body { margin: 0; width: 100%; height: 100%; min-height: 100%; background: #0c1014; color: #e8dcc8; font-family: Georgia, serif; }
   body { display: flex; flex-direction: column; overflow: hidden; }
   #bar {
     flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
@@ -28,11 +29,12 @@
   }
   #bar button.on, #tabs button.on { background: #3a3020; color: #f0e0c0; border-color: #c8a060; }
   #stat { font-size: 11px; color: #7a6a52; white-space: nowrap; }
-  #main { flex: 1 1 auto; display: flex; min-height: 0; }
+  #main { flex: 1 1 auto; display: flex; min-height: 0; height: 100%; }
   #side {
-    width: 280px; max-width: 42vw; overflow: auto; background: #101418;
-    border-right: 1px solid #3a3226;
+    width: 280px; max-width: 42%; overflow: auto; background: #101418;
+    border-right: 1px solid #3a3226; flex: 0 0 auto;
   }
+  body.playing #side { display: none; }
   #tabs { display: flex; position: sticky; top: 0; background: #101418; padding: 8px; gap: 4px; z-index: 1; }
   #list { padding: 0 8px 12px; }
   .g {
@@ -43,8 +45,11 @@
   .g:hover, .g.sel { border-color: #c8a060; color: #f0e0c0; }
   .g b { display: block; font-weight: 400; color: #f0e0c0; }
   .g i { font-style: normal; font-size: 11px; color: #8a7a62; }
-  #play { flex: 1 1 auto; position: relative; background: #000; min-width: 0; }
-  #play iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
+  #play { flex: 1 1 auto; position: relative; background: #000; min-width: 0; min-height: 240px; }
+  #play iframe {
+    position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000;
+    display: block;
+  }
   #empty {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     color: #8a7a62; text-align: center; padding: 24px; pointer-events: none;
@@ -72,7 +77,7 @@
   </div>
   <div id="play">
     <div id="empty">Pick a game. Flash loads through Ruffle from jsDelivr / Bunny CDN.</div>
-    <iframe id="frame" title="game" allow="autoplay; fullscreen; gamepad; clipboard-write" allowfullscreen></iframe>
+    <iframe id="frame" title="game" allow="autoplay; fullscreen; gamepad; clipboard-write; xr-spatial-tracking" allowfullscreen></iframe>
   </div>
 </div>
 <script>
@@ -176,6 +181,7 @@
   var tab = "all";
   var sel = null;
   var query = "";
+  var framed = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();
 
   function titleOf(file) {
     if (NAMES[file]) return NAMES[file];
@@ -357,31 +363,97 @@
     return null;
   }
 
+  function viewport() {
+    var vv = window.visualViewport;
+    if (vv && vv.height) return { w: Math.max(1, Math.round(vv.width)), h: Math.max(1, Math.round(vv.height)) };
+    return {
+      w: Math.max(1, window.innerWidth || document.documentElement.clientWidth || 640),
+      h: Math.max(1, window.innerHeight || document.documentElement.clientHeight || 480)
+    };
+  }
+
+  function layout() {
+    var vp = viewport();
+    var bar = document.getElementById("bar");
+    var main = document.getElementById("main");
+    var play = document.getElementById("play");
+    var frame = document.getElementById("frame");
+    var barH = bar ? bar.offsetHeight : 44;
+    var h = Math.max(200, vp.h - barH);
+    document.documentElement.style.height = vp.h + "px";
+    document.body.style.width = vp.w + "px";
+    document.body.style.height = vp.h + "px";
+    main.style.height = h + "px";
+    play.style.height = h + "px";
+    frame.style.width = "100%";
+    frame.style.height = h + "px";
+  }
+
+  function injectFit(html) {
+    html = String(html || "");
+    if (/id=['"]embed-fit['"]/.test(html)) return html;
+    var renderer = framed ? "canvas" : "auto";
+    var shell = /ruffle|unity-canvas|createUnityInstance|EJS_|createPlayer|\.swf/i.test(html);
+    var fit = "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
+      "<style id='embed-fit'>html,body{margin:0!important;width:100%!important;height:100%!important;min-height:100%!important;background:#000" +
+      (shell ? ";overflow:hidden!important" : "") + "}" +
+      "ruffle-player,ruffle-embed,ruffle-object{display:block!important;width:100%!important;height:100%!important}" +
+      (shell ? "#game,#unity-canvas,#unityContainer{width:100%!important;height:100%!important}" : "") + "</style>" +
+      "<script id='embed-fit-js'>(function(){" +
+      "window.RufflePlayer=window.RufflePlayer||{};" +
+      "window.RufflePlayer.config=Object.assign({autoplay:'on',unmuteOverlay:'hidden',letterbox:'on',backgroundColor:'#000000',preferredRenderer:" + JSON.stringify(renderer) + "},window.RufflePlayer.config||{});" +
+      "var lw=0,lh=0;" +
+      "function sz(){var w=window.innerWidth||document.documentElement.clientWidth,h=window.innerHeight||document.documentElement.clientHeight;" +
+      "if(!w||!h)return;document.documentElement.style.width=w+'px';document.documentElement.style.height=h+'px';" +
+      "if(document.body){document.body.style.width=w+'px';document.body.style.height=h+'px';document.body.style.margin='0';}" +
+      "var n=document.querySelectorAll('ruffle-player,ruffle-embed,ruffle-object,#unity-canvas,#unityContainer');" +
+      "for(var i=0;i<n.length;i++){n[i].style.width=w+'px';n[i].style.height=h+'px';n[i].style.maxWidth='none';n[i].style.maxHeight='none';}" +
+      "if(window.EJS_core||window.EJS_player){var g=document.getElementById('game');if(g){g.style.width=w+'px';g.style.height=h+'px';}}" +
+      "if(w!==lw||h!==lh){lw=w;lh=h;window.dispatchEvent(new Event('resize'));}}" +
+      "setInterval(sz,400);window.addEventListener('resize',sz);" +
+      "if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',sz);else sz();" +
+      "})();<\/script>";
+    if (/<head[^>]*>/i.test(html)) return html.replace(/<head([^>]*)>/i, "<head$1>" + fit);
+    return fit + html;
+  }
+
   function ruffleDoc(swf) {
     var src = cleanUrl(swf);
-    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body{margin:0;height:100%;background:#000;overflow:hidden}</style>" +
-      "<script src='" + RUFFLE + "'><\/script></head><body>" +
-      "<object width='100%' height='100%'><param name='movie' value='" + src.replace(/'/g, "") + "'>" +
-      "<embed src='" + src.replace(/'/g, "") + "' width='100%' height='100%'></object></body></html>";
+    var renderer = framed ? "canvas" : "auto";
+    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body,#g{margin:0;width:100%;height:100%;background:#000;overflow:hidden}</style>" +
+      "<script>window.RufflePlayer={config:{autoplay:'on',unmuteOverlay:'hidden',letterbox:'on',backgroundColor:'#000000',preferredRenderer:" + JSON.stringify(renderer) + "}};<\/script>" +
+      "<script src='" + RUFFLE + "'><\/script></head><body><div id='g'></div>" +
+      "<script>(function(){function boot(){if(!window.RufflePlayer||!window.RufflePlayer.newest){setTimeout(boot,40);return;}" +
+      "var w=window.RufflePlayer.newest();if(!w||!w.createPlayer){setTimeout(boot,40);return;}" +
+      "var p=w.createPlayer();p.style.position='fixed';p.style.inset='0';p.style.width='100%';p.style.height='100%';" +
+      "document.getElementById('g').appendChild(p);p.load(" + JSON.stringify(src) + ");}" +
+      "boot();})();<\/script></body></html>";
   }
 
   function ndsDoc(rom) {
     var url = cleanUrl(rom);
-    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body,#game{margin:0;height:100%;background:#000}</style></head><body>" +
+    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden}#game{position:fixed;inset:0}</style></head><body>" +
       "<div id='game'></div><script>EJS_player='#game';EJS_core='nds';EJS_color='#000000';EJS_startOnLoaded=true;" +
       "EJS_pathtodata=" + JSON.stringify(EJS) + ";EJS_gameUrl=" + JSON.stringify(url) + ";<\/script>" +
       "<script src='" + EJS + "/loader.js'><\/script></body></html>";
   }
 
   function show(html) {
+    layout();
     var frame = document.getElementById("frame");
     frame.removeAttribute("src");
-    frame.srcdoc = html;
+    frame.srcdoc = injectFit(html);
+    frame.onload = function () {
+      layout();
+      try { frame.contentWindow.dispatchEvent(new Event("resize")); } catch (e) {}
+    };
   }
 
   function playUrl(url) {
-    document.getElementById("frame").srcdoc = "";
-    document.getElementById("frame").src = mirrors(url)[0] || cleanUrl(url);
+    layout();
+    var frame = document.getElementById("frame");
+    frame.removeAttribute("srcdoc");
+    frame.src = mirrors(url)[0] || cleanUrl(url);
   }
 
   async function fetchText(url) {
@@ -412,7 +484,9 @@
     var g = games[file];
     if (!g) return;
     sel = file;
+    document.body.className = "playing";
     document.getElementById("empty").className = "hide";
+    layout();
     render();
     var url = pageUrl(g);
     try {
@@ -559,17 +633,23 @@
     var frame = document.getElementById("frame");
     frame.srcdoc = "";
     frame.src = "about:blank";
+    document.body.className = "";
     document.getElementById("empty").className = "";
     sel = null;
+    layout();
     render();
   });
   document.getElementById("full").addEventListener("click", function () {
     var box = document.getElementById("play");
     if (box.requestFullscreen) box.requestFullscreen();
   });
+  document.addEventListener("fullscreenchange", layout);
 
   loadCache();
   render();
+  layout();
+  window.addEventListener("resize", layout);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", layout);
   scan();
 })();
 </script>
