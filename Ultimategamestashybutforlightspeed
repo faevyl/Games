@@ -176,13 +176,13 @@
     ["cactus-mccoy-2.html", "flash"],
     ["dad-nm-e.html", "flash"],
     ["defend-your-castle.html", "flash"],
-    ["riddle-school.html", "flash", CDN + SERAPH + "games/riddleschool/riddleschool1/index.html"],
-    ["riddle-school-2.html", "flash", CDN + SERAPH + "games/riddleschool/riddleschool2/index.html"],
-    ["riddle-school-3.html", "flash", CDN + SERAPH + "games/riddleschool/riddleschool3/index.html"],
-    ["riddle-school-4.html", "flash", CDN + SERAPH + "games/riddleschool/riddleschool4/index.html"],
+    ["riddle-school.html", "flash"],
+    ["riddle-school-2.html", "flash"],
+    ["riddle-school-3.html", "flash"],
+    ["riddle-school-4.html", "flash"],
     ["riddle-school-5", "flash", CDN + SERAPH + "games/riddleschool/riddleschool5/index.html"],
-    ["riddle-transfer.html", "flash", CDN + SERAPH + "games/riddleschool/riddletransfer/index.html"],
-    ["riddle-transfer-2.html", "flash", CDN + SERAPH + "games/riddleschool/riddletransfer2/index.html"],
+    ["riddle-transfer.html", "flash"],
+    ["riddle-transfer-2.html", "flash"],
     ["gun-mayhem.html", "flash"],
     ["gun-mayhem-2.html", "web"],
     ["gun-mayhem-redux.html", "flash"],
@@ -297,7 +297,7 @@
   function folderSite(file) {
     var p = String(file || "");
     if (!p) return true;
-    if (/ragdoll-archers|riddle-?school|riddle-?transfer|(^|\/)fnaf$|(^|\/)half-?life/i.test(p)) return false;
+    if (/ragdoll-archers|riddle-school-5|(^|\/)fnaf$|(^|\/)half-?life/i.test(p)) return false;
     if (p.indexOf("/") !== -1) return true;
     if (/^seraph\//i.test(p)) return true;
     return false;
@@ -425,7 +425,9 @@
       return "https://raw.githubusercontent.com/" + a + "/" + b + "/" + c + "/" + d;
     });
     html = html.replace(/https?:\/\/unpkg\.com\/@ruffle-rs\/ruffle[^"']*/gi, RUFFLE);
+    html = html.replace(/https?:\/\/cdn\.jsdelivr\.net\/npm\/@ruffle-rs\/ruffle[^"']*/gi, RUFFLE);
     html = html.replace(/(src\s*=\s*["'])[^"']*ruffle\/ruffle\.js["']/gi, "$1" + RUFFLE + '"');
+    html = html.replace(/(['"])\.\.\/\.\.\/\.\.\/storage\/ruffle\/ruffle\.js\1/gi, "$1" + RUFFLE + "$1");
     if (ownCdnBase(html)) return html;
     html = rewriteRootUrls(html, base);
     var patch = pathPatcher(base);
@@ -600,16 +602,18 @@
     var url = pageUrl(g);
     try {
       var txt = await fetchText(url);
+      var html = fixGameHtml(innerHtml(txt));
       var info = classify(txt);
       if (info && info.url) {
         var abs = info.url;
         if (!/^https?:/i.test(abs)) abs = dirOf(mirrors(url)[0]) + abs.replace(/^\.\//, "");
         abs = cleanUrl(abs);
-        if (destBlocked(abs)) return;
-        g.dest = abs;
-        if (info.kind) g.kind = info.kind;
+        var pageDest = g.dest && !/\.(swf|zip|json)($|\?)/i.test(g.dest);
+        if (!destBlocked(abs) && !pageDest) {
+          g.dest = abs;
+          if (info.kind) g.kind = info.kind;
+        }
       }
-      var html = fixGameHtml(innerHtml(txt));
       var cdnPage = ownCdnBase(html);
       var needsFix = /[0-9a-f]{8,}-text\/javascript/i.test(txt);
       if (cdnPage && !needsFix) {
@@ -623,9 +627,8 @@
     } catch (e) {}
     var dest = g.dest;
     if (dest && destBlocked(dest)) return;
-    if (g.kind === "flash" || (dest && /\.swf/i.test(dest))) {
-      if (dest) show(ruffleDoc(dest));
-      else playUrl(url);
+    if ((g.kind === "flash" || (dest && /\.swf/i.test(dest))) && dest && /\.swf/i.test(dest)) {
+      show(ruffleDoc(dest));
       return;
     }
     if (g.kind === "nds" && dest) {
@@ -642,13 +645,13 @@
 
   function saveCache() {
     try {
-      localStorage.setItem("liteFlashDs7", JSON.stringify({ t: Date.now(), games: games }));
+      localStorage.setItem("liteFlashDs8", JSON.stringify({ t: Date.now(), games: games }));
     } catch (e) {}
   }
 
   function loadCache() {
     try {
-      var raw = localStorage.getItem("liteFlashDs7");
+      var raw = localStorage.getItem("liteFlashDs8");
       if (!raw) return;
       var data = JSON.parse(raw);
       if (!data || !data.games || Date.now() - data.t > 7 * 24 * 60 * 60 * 1000) return;
