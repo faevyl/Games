@@ -111,6 +111,7 @@
   var LITE = "Craf1ed/lite-assets@main/";
   var SERAPH = "a456pur/seraph@ae2fcc6d6a9cd051654fcc0519080db1f79cf2a7/";
   var RUFFLE = CDN + "u-cvlassrom-y/google@main/ruffle.js";
+  var RUFFLE_DIR = CDN + "u-cvlassrom-y/google@main/";
   var EJS = CDN + "a456pur/seraph@81f551ca0aa8e3d6018d32d8ac5904ac9bc78f76/storage/emulatorjs/data";
   var API = "https://api.github.com/repos/Craf1ed/lite-assets/contents/";
   var NAMES = {
@@ -354,9 +355,9 @@
     if (m) return { kind: "nds", url: m[1] };
     m = text.match(/swfUrl\s*:\s*["']([^"']+)["']/i);
     if (m) return { kind: "flash", url: m[1] };
-    m = text.match(/<param[^>]*name=["']movie["'][^>]*value=["']([^"']+)["']/i) ||
-      text.match(/value=["'](https?:\/\/[^"']+\.swf[^"']*)["']/i) ||
-      text.match(/<embed[^>]*src=["']([^"']+\.swf[^"']*)["']/i);
+    m = text.match(/<param[^>]*name=["']movie["'][^>]*value=["']([^"']+\.swf)["']/i) ||
+      text.match(/<embed[^>]*src=["']([^"']+\.swf)["']/i) ||
+      text.match(/value=["'](https?:\/\/[^"']+\.swf)["']/i);
     if (m) return { kind: "flash", url: m[1] };
     m = text.match(/player\.load\(\s*["']([^"']+\.swf)["']/i);
     if (m) return { kind: "flash", url: m[1] };
@@ -497,7 +498,7 @@
       ".unsupported-container,.unsupported-text{display:none!important}</style>" +
       "<script id='embed-fit-js'>(function(){" +
       "window.RufflePlayer=window.RufflePlayer||{};" +
-      "window.RufflePlayer.config=Object.assign({autoplay:'on',unmuteOverlay:'hidden',letterbox:'on',backgroundColor:'#000000',preferredRenderer:" + JSON.stringify(renderer) + "},window.RufflePlayer.config||{});" +
+      "window.RufflePlayer.config=Object.assign({autoplay:'on',unmuteOverlay:'hidden',letterbox:'on',backgroundColor:'#000000',publicPath:" + JSON.stringify(RUFFLE_DIR) + ",preferredRenderer:" + JSON.stringify(renderer) + "},window.RufflePlayer.config||{});" +
       "var lw=0,lh=0;" +
       "function sz(){var w=window.innerWidth||document.documentElement.clientWidth,h=window.innerHeight||document.documentElement.clientHeight;" +
       "if(!w||!h)return;document.documentElement.style.width=w+'px';document.documentElement.style.height=h+'px';" +
@@ -517,7 +518,7 @@
     var src = cleanUrl(swf);
     var renderer = framed ? "canvas" : "auto";
     return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body,#g{margin:0;width:100%;height:100%;background:#000;overflow:hidden}</style>" +
-      "<script>window.RufflePlayer={config:{autoplay:'on',unmuteOverlay:'hidden',letterbox:'on',backgroundColor:'#000000',preferredRenderer:" + JSON.stringify(renderer) + "}};<\/script>" +
+      "<script>window.RufflePlayer={config:{autoplay:'on',unmuteOverlay:'hidden',letterbox:'on',backgroundColor:'#000000',publicPath:" + JSON.stringify(RUFFLE_DIR) + ",preferredRenderer:" + JSON.stringify(renderer) + "}};<\/script>" +
       "<script src='" + RUFFLE + "'><\/script></head><body><div id='g'></div>" +
       "<script>(function(){function boot(){if(!window.RufflePlayer||!window.RufflePlayer.newest){setTimeout(boot,40);return;}" +
       "var w=window.RufflePlayer.newest();if(!w||!w.createPlayer){setTimeout(boot,40);return;}" +
@@ -604,6 +605,7 @@
       var txt = await fetchText(url);
       var html = fixGameHtml(innerHtml(txt));
       var info = classify(txt);
+      var swf = "";
       if (info && info.url) {
         var abs = info.url;
         if (!/^https?:/i.test(abs)) abs = dirOf(mirrors(url)[0]) + abs.replace(/^\.\//, "");
@@ -613,6 +615,16 @@
           g.dest = abs;
           if (info.kind) g.kind = info.kind;
         }
+        if (info.kind === "flash" || /\.swf($|\?)/i.test(abs)) swf = abs;
+      }
+      var pageDest = g.dest && !/\.(swf|zip|json)($|\?)/i.test(g.dest);
+      if (pageDest) {
+        show(withBase(html, dirOf(mirrors(url)[0])));
+        return;
+      }
+      if (swf && /\.swf($|\?)/i.test(swf) && !destBlocked(swf)) {
+        show(ruffleDoc(swf));
+        return;
       }
       var cdnPage = ownCdnBase(html);
       var needsFix = /[0-9a-f]{8,}-text\/javascript/i.test(txt);
@@ -620,14 +632,14 @@
         playUrl(mirrors(url)[0]);
         return;
       }
-      if (html && /<html|ruffle|createUnityInstance|EJS_|unity-canvas|swfUrl|waf|poki-sdk|emscripten/i.test(html)) {
+      if (html && /createUnityInstance|EJS_|unity-canvas|poki-sdk|emscripten|type=["']module["']/i.test(html)) {
         show(withBase(html, cdnPage || dirOf(mirrors(url)[0])));
         return;
       }
     } catch (e) {}
     var dest = g.dest;
     if (dest && destBlocked(dest)) return;
-    if ((g.kind === "flash" || (dest && /\.swf/i.test(dest))) && dest && /\.swf/i.test(dest)) {
+    if (dest && /\.swf/i.test(dest)) {
       show(ruffleDoc(dest));
       return;
     }
