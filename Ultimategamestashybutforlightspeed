@@ -140,6 +140,8 @@
     "gun-mayhem-2.html": "Gun Mayhem 2",
     "gun-mayhem-redux.html": "Gun Mayhem Redux",
     "ragdoll-archers/index.html": "Ragdoll Archers",
+    "bad-parenting.html": "Bad Parenting",
+    "roblox.html": "Roblox",
     "infinite-craft.html": "Infinite Craft",
     "drive-mad.html": "Drive Mad",
     "escape-road.html": "Escape Road",
@@ -188,6 +190,8 @@
     ["gun-mayhem-2.html", "web"],
     ["gun-mayhem-redux.html", "flash"],
     ["ragdoll-archers/index.html", "web", CDN + LITE + "ragdoll-archers/index.html"],
+    ["bad-parenting.html", "web"],
+    ["roblox.html", "web"],
     ["cookie-clicker.html", "web"],
     ["granny.html", "web"],
     ["granny-2-2.html", "web"],
@@ -256,7 +260,7 @@
     return BUNNY + p.user + "/" + p.repo + "@" + p.ref + "/" + p.path;
   }
 
-  // githack is blocked. GitHub, jsDelivr, and Bunny CDN are not.
+  // githack is blocked. GitHub is not. jsDelivr 403s some Unity repos.
   function cleanUrl(url) {
     url = String(url || "").replace(/&amp;/g, "&");
     if (/githack\.com/i.test(url)) {
@@ -365,7 +369,7 @@
     if (m) return { kind: "web", url: m[1] };
     m = text.match(/<iframe[^>]*src=["']([^"']+)["']/i);
     if (m) return { kind: "web", url: m[1] };
-    m = text.match(/buildUrl\s*=\s*["']([^"']+)["']/i);
+    m = text.match(/buildUrl\s*=\s*["'](https?:\/\/[^"']+)["']/i);
     if (m) return { kind: "web", url: m[1] };
     return null;
   }
@@ -420,6 +424,29 @@
     return m ? m[1] : "";
   }
 
+  function githubMime() {
+    return "<script>(function(){" +
+      "function mime(u){u=String(u||'').split('?')[0].split('#')[0];" +
+      "if(/\\.wasm$/i.test(u))return'application/wasm';" +
+      "if(/\\.m?js$/i.test(u))return'application/javascript';" +
+      "if(/\\.json$/i.test(u))return'application/json';" +
+      "if(/\\.css$/i.test(u))return'text/css';" +
+      "if(/\\.(data|mem|bundle|unityweb)$/i.test(u))return'application/octet-stream';return'';}" +
+      "function abs(u){try{return new URL(String(u||''),document.baseURI).href;}catch(e){return String(u||'');}}" +
+      "function gh(u){return /raw\\.githubusercontent\\.com/i.test(u);}" +
+      "var F=window.fetch;" +
+      "window.fetch=function(i,n){var u=abs(typeof i==='string'?i:(i&&i.url)||'');return F.apply(this,arguments).then(function(r){var t=gh(u)&&mime(u);if(!t)return r;return r.arrayBuffer().then(function(b){return new Response(b,{status:r.status,statusText:r.statusText,headers:{'Content-Type':t}});});});};" +
+      "var XO=XMLHttpRequest.prototype.open;" +
+      "XMLHttpRequest.prototype.open=function(m,u){var a=abs(u),t=gh(a)&&mime(a);if(t){try{this.overrideMimeType(t);}catch(e){}}return XO.apply(this,arguments);};" +
+      "function hook(proto,prop){try{var d=Object.getOwnPropertyDescriptor(proto,prop);if(!d||!d.set)return;" +
+      "Object.defineProperty(proto,prop,{configurable:true,enumerable:d.enumerable,get:d.get,set:function(v){var el=this,a=abs(v),t=gh(a)&&mime(a);" +
+      "if(prop==='src'&&t){F(a).then(function(r){return r.arrayBuffer();}).then(function(b){d.set.call(el,URL.createObjectURL(new Blob([b],{type:t})));}).catch(function(){d.set.call(el,v);});return;}d.set.call(el,v);}});}catch(e){}}" +
+      "if(window.HTMLScriptElement)hook(HTMLScriptElement.prototype,'src');" +
+      "var SA=Element.prototype.setAttribute;" +
+      "Element.prototype.setAttribute=function(n,v){if((n==='src'||n==='href')&&typeof v==='string'){var a=abs(v),t=gh(a)&&mime(a);if(n==='src'&&t){var el=this;F(a).then(function(r){return r.arrayBuffer();}).then(function(b){SA.call(el,n,URL.createObjectURL(new Blob([b],{type:t})));}).catch(function(){SA.call(el,n,v);});return;}}return SA.apply(this,arguments);};" +
+      "})();<\/script>";
+  }
+
   function withBase(html, base) {
     html = fixGameHtml(html);
     html = html.replace(/https?:\/\/(?:rawcdn\.|cdn\.)?githack\.com\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^"'\s]+)/gi, function (_, a, b, c, d) {
@@ -430,8 +457,9 @@
     html = html.replace(/(src\s*=\s*["'])[^"']*ruffle\/ruffle\.js["']/gi, "$1" + RUFFLE + '"');
     html = html.replace(/(['"])\.\.\/\.\.\/\.\.\/storage\/ruffle\/ruffle\.js\1/gi, "$1" + RUFFLE + "$1");
     if (ownCdnBase(html)) return html;
+    var gh = /raw\.githubusercontent\.com/i.test(html);
     html = rewriteRootUrls(html, base);
-    var patch = pathPatcher(base);
+    var patch = (gh ? githubMime() : "") + (gh ? "" : pathPatcher(base));
     if (base && !/<base[\s>]/i.test(html)) {
       if (/<head[^>]*>/i.test(html)) html = html.replace(/<head([^>]*)>/i, "<head$1><base href=\"" + base + "\">" + patch);
       else if (/<html[^>]*>/i.test(html)) html = html.replace(/<html([^>]*)>/i, "<html$1><head><base href=\"" + base + "\">" + patch + "</head>");
@@ -572,7 +600,7 @@
   }
 
   function pageUrl(g) {
-    if (g.dest && !/\.(swf|zip|json)($|\?)/i.test(g.dest)) return g.dest;
+    if (g.dest && /\.html($|\?)/i.test(g.dest)) return g.dest;
     if (g.file.indexOf("http") === 0) return g.file;
     if (g.file.indexOf("seraph/") === 0) return CDN + SERAPH + "games/" + g.file.slice(7) + "/index.html";
     return liteUrl(g.file);
@@ -610,14 +638,18 @@
         var abs = info.url;
         if (!/^https?:/i.test(abs)) abs = dirOf(mirrors(url)[0]) + abs.replace(/^\.\//, "");
         abs = cleanUrl(abs);
-        var pageDest = g.dest && !/\.(swf|zip|json)($|\?)/i.test(g.dest);
+        var pageDest = g.dest && /\.html($|\?)/i.test(g.dest);
         if (!destBlocked(abs) && !pageDest) {
           g.dest = abs;
           if (info.kind) g.kind = info.kind;
         }
         if (info.kind === "flash" || /\.swf($|\?)/i.test(abs)) swf = abs;
       }
-      var pageDest = g.dest && !/\.(swf|zip|json)($|\?)/i.test(g.dest);
+      if (html && /createUnityInstance|unity-canvas|UnityLoader/i.test(html)) {
+        show(withBase(html, dirOf(mirrors(url)[0])));
+        return;
+      }
+      var pageDest = g.dest && /\.html($|\?)/i.test(g.dest);
       if (pageDest) {
         show(withBase(html, dirOf(mirrors(url)[0])));
         return;
@@ -632,7 +664,7 @@
         playUrl(mirrors(url)[0]);
         return;
       }
-      if (html && /createUnityInstance|EJS_|unity-canvas|poki-sdk|emscripten|type=["']module["']/i.test(html)) {
+      if (html && /EJS_|poki-sdk|emscripten|type=["']module["']/i.test(html)) {
         show(withBase(html, cdnPage || dirOf(mirrors(url)[0])));
         return;
       }
@@ -657,13 +689,13 @@
 
   function saveCache() {
     try {
-      localStorage.setItem("liteFlashDs8", JSON.stringify({ t: Date.now(), games: games }));
+      localStorage.setItem("liteFlashDs9", JSON.stringify({ t: Date.now(), games: games }));
     } catch (e) {}
   }
 
   function loadCache() {
     try {
-      var raw = localStorage.getItem("liteFlashDs8");
+      var raw = localStorage.getItem("liteFlashDs9");
       if (!raw) return;
       var data = JSON.parse(raw);
       if (!data || !data.games || Date.now() - data.t > 7 * 24 * 60 * 60 * 1000) return;
@@ -688,7 +720,7 @@
       var n = f.name.toLowerCase();
       var sz = f.size || 0;
       if (n.indexOf("gba") !== -1 || n.indexOf("nes") !== -1 || n.indexOf("n64") !== -1) return false;
-      if (/flash|ruffle|swf|achill|riddle|cookie|granny|burger|fnaf|gun-mayhem|ragdoll|alchem|infinite-craft|drive-mad|escape-road/.test(n)) return true;
+      if (/flash|ruffle|swf|achill|riddle|cookie|granny|burger|fnaf|gun-mayhem|ragdoll|alchem|infinite-craft|drive-mad|escape-road|parenting/.test(n)) return true;
       if (/ds|dsi|nds/.test(n) && !/lands|roads|cards|words|birds|mods/.test(n)) return true;
       if (sz >= 900 && sz <= 1600) return true;
       if (sz >= 2400 && sz <= 4500) return true;
