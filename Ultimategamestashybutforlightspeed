@@ -86,6 +86,9 @@
     position: absolute; top: 6px; right: 8px; border: 0; background: transparent;
     color: #8a7a62; font: 16px Georgia, serif; cursor: pointer; padding: 2px 6px;
   }
+  body.max #side { display: none; }
+  #play:fullscreen, #play:-webkit-full-screen,
+  html:fullscreen, html:-webkit-full-screen { width: 100%; height: 100%; background: #000; }
 </style>
 </head>
 <body>
@@ -110,7 +113,7 @@
   </div>
   <div id="play">
     <div id="empty">Pick a game.</div>
-    <iframe id="frame" title="game" allow="autoplay; fullscreen; gamepad; clipboard-write; xr-spatial-tracking" allowfullscreen></iframe>
+    <iframe id="frame" title="game" allow="autoplay; fullscreen; gamepad; clipboard-write; xr-spatial-tracking" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true"></iframe>
     <div id="load" class="on">
       <div id="spin"></div>
       <b>WHY REVIVED</b>
@@ -129,8 +132,8 @@
   var BUNNY = "https://jsdelivr.b-cdn.net/gh/";
   var LITE = "Craf1ed/lite-assets@main/";
   var SERAPH = "a456pur/seraph@ae2fcc6d6a9cd051654fcc0519080db1f79cf2a7/";
-  var RUFFLE = CDN + "u-cvlassrom-y/google@main/ruffle.js";
-  var RUFFLE_DIR = CDN + "u-cvlassrom-y/google@main/";
+  var RUFFLE = "https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.5.0/ruffle.js";
+  var RUFFLE_DIR = "https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.5.0/";
   var EJS = CDN + "a456pur/seraph@81f551ca0aa8e3d6018d32d8ac5904ac9bc78f76/storage/emulatorjs/data";
   var API = "https://api.github.com/repos/Craf1ed/lite-assets/contents/";
   var NAMES = {
@@ -170,7 +173,8 @@
     "super-mario-64-ds.html": "Super Mario 64 DS",
     "mario-kart-ds.html": "Mario Kart DS",
     "mario-party-ds.html": "Mario Party DS",
-    "animal-crossing-wild-world.html": "Animal Crossing: Wild World"
+    "animal-crossing-wild-world.html": "Animal Crossing: Wild World",
+    "seraph/thebindingofisaac": "The Binding of Isaac"
   };
   var SEED = [
     ["achillies-1-fr.html", "flash"],
@@ -229,7 +233,8 @@
     ["cooking-mama-3.html", "nds"],
     ["pokemon-mone-vol-ve-ds-fd-gs-dfs.html", "nds"],
     ["pokemon-moneme-ra-lds-ea-glass.html", "nds"],
-    ["pokes-cor-che-dsi-lv-er.html", "nds"]
+    ["pokes-cor-che-dsi-lv-er.html", "nds"],
+    ["seraph/thebindingofisaac", "flash", CDN + SERAPH + "games/thebindingofisaac/the_binding_of_isaac.swf"]
   ];
   var BLOCK_FILE = {
     "cooking-mama.html": 1,
@@ -246,6 +251,12 @@
   var sel = null;
   var query = "";
   var framed = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();
+  var bootGame = (function () {
+    var blob = String(location.hash || "") + "&" + String(location.search || "");
+    var m = blob.match(/[#&?]play=([^&]*)/);
+    if (!m) return "";
+    try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; }
+  })();
 
   function titleOf(file) {
     if (NAMES[file]) return NAMES[file];
@@ -321,7 +332,7 @@
   function folderSite(file) {
     var p = String(file || "");
     if (!p) return true;
-    if (/ragdoll-archers|riddle-school-5|(^|\/)fnaf$|(^|\/)half-?life/i.test(p)) return false;
+    if (/ragdoll-archers|riddle-school-5|(^|\/)fnaf$|(^|\/)half-?life|thebindingofisaac|binding-?of-?isaac/i.test(p)) return false;
     if (p.indexOf("/") !== -1) return true;
     if (/^seraph\//i.test(p)) return true;
     return false;
@@ -535,17 +546,17 @@
   function injectFit(html) {
     html = String(html || "");
     if (/id=['"]embed-fit['"]/.test(html)) return html;
-    var renderer = framed ? "canvas" : "auto";
     var shell = /ruffle|unity-canvas|createUnityInstance|EJS_|createPlayer|\.swf/i.test(html);
     var fit = "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
       "<style id='embed-fit'>html,body{margin:0!important;width:100%!important;height:100%!important;min-height:100%!important;background:#000" +
       (shell ? ";overflow:hidden!important" : "") + "}" +
       "ruffle-player,ruffle-embed,ruffle-object{display:block!important;width:100%!important;height:100%!important}" +
+      "ruffle-player canvas{image-rendering:auto}" +
       (shell ? "#game,#unity-canvas,#unityContainer{width:100%!important;height:100%!important}" : "") +
       ".unsupported-container,.unsupported-text{display:none!important}</style>" +
       "<script id='embed-fit-js'>(function(){" +
       "window.RufflePlayer=window.RufflePlayer||{};" +
-      "window.RufflePlayer.config=Object.assign({autoplay:'on',unmuteOverlay:'hidden',letterbox:'on',backgroundColor:'#000000',publicPath:" + JSON.stringify(RUFFLE_DIR) + ",preferredRenderer:" + JSON.stringify(renderer) + "},window.RufflePlayer.config||{});" +
+      "window.RufflePlayer.config=Object.assign(" + ruffleConfigJson() + ",window.RufflePlayer.config||{});" +
       "var lw=0,lh=0;" +
       "function sz(){var w=window.innerWidth||document.documentElement.clientWidth,h=window.innerHeight||document.documentElement.clientHeight;" +
       "if(!w||!h)return;document.documentElement.style.width=w+'px';document.documentElement.style.height=h+'px';" +
@@ -561,16 +572,46 @@
     return fit + html;
   }
 
+  function ruffleConfigJson(swf) {
+    var src = swf ? cleanUrl(swf) : "";
+    return JSON.stringify({
+      autoplay: "on",
+      unmuteOverlay: "hidden",
+      letterbox: "on",
+      backgroundColor: "#000000",
+      publicPath: RUFFLE_DIR,
+      quality: "high",
+      scale: "showAll",
+      forceScale: true,
+      maxExecutionDuration: 90,
+      allowNetworking: "all",
+      base: src ? dirOf(src) : null
+    });
+  }
+
   function ruffleDoc(swf) {
     var src = cleanUrl(swf);
-    var renderer = framed ? "canvas" : "auto";
-    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body,#g{margin:0;width:100%;height:100%;background:#000;overflow:hidden}</style>" +
-      "<script>window.RufflePlayer={config:{autoplay:'on',unmuteOverlay:'hidden',letterbox:'on',backgroundColor:'#000000',publicPath:" + JSON.stringify(RUFFLE_DIR) + ",preferredRenderer:" + JSON.stringify(renderer) + "}};<\/script>" +
+    var opts = {
+      url: src,
+      base: dirOf(src),
+      autoplay: "on",
+      unmuteOverlay: "hidden",
+      letterbox: "on",
+      backgroundColor: "#000000",
+      publicPath: RUFFLE_DIR,
+      quality: "high",
+      scale: "showAll",
+      forceScale: true,
+      maxExecutionDuration: 90,
+      allowNetworking: "all"
+    };
+    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body,#g{margin:0;width:100%;height:100%;background:#000;overflow:hidden}ruffle-player{position:fixed;inset:0;width:100%;height:100%}</style>" +
+      "<script>window.RufflePlayer={config:" + ruffleConfigJson(src) + "};<\/script>" +
       "<script src='" + RUFFLE + "'><\/script></head><body><div id='g'></div>" +
       "<script>(function(){function boot(){if(!window.RufflePlayer||!window.RufflePlayer.newest){setTimeout(boot,40);return;}" +
       "var w=window.RufflePlayer.newest();if(!w||!w.createPlayer){setTimeout(boot,40);return;}" +
       "var p=w.createPlayer();p.style.position='fixed';p.style.inset='0';p.style.width='100%';p.style.height='100%';" +
-      "document.getElementById('g').appendChild(p);p.load(" + JSON.stringify(src) + ");}" +
+      "document.getElementById('g').appendChild(p);p.load(" + JSON.stringify(opts) + ");}" +
       "boot();})();<\/script></body></html>";
   }
 
@@ -668,7 +709,7 @@
       return;
     }
     sel = file;
-    document.body.className = "playing";
+    document.body.classList.add("playing");
     document.getElementById("empty").className = "hide";
     setLoad(true, "loading " + g.name + "…");
     layout();
@@ -765,7 +806,7 @@
       var n = f.name.toLowerCase();
       var sz = f.size || 0;
       if (n.indexOf("gba") !== -1 || n.indexOf("nes") !== -1 || n.indexOf("n64") !== -1) return false;
-      if (/flash|ruffle|swf|achill|riddle|cookie|granny|burger|fnaf|gun-mayhem|ragdoll|alchem|infinite-craft|drive-mad|escape-road|parenting/.test(n)) return true;
+      if (/flash|ruffle|swf|achill|riddle|cookie|granny|burger|fnaf|gun-mayhem|ragdoll|alchem|infinite-craft|drive-mad|escape-road|parenting|isaac/.test(n)) return true;
       if (/ds|dsi|nds/.test(n) && !/lands|roads|cards|words|birds|mods/.test(n)) return true;
       if (sz >= 900 && sz <= 1600) return true;
       if (sz >= 2400 && sz <= 4500) return true;
@@ -800,6 +841,7 @@
     await scanSeraph();
     saveCache();
     render();
+    bootPlay();
     if (!sel) hideLoad();
   }
 
@@ -827,22 +869,105 @@
     var frame = document.getElementById("frame");
     frame.srcdoc = "";
     frame.src = "about:blank";
-    document.body.className = "";
+    document.body.classList.remove("playing");
     document.getElementById("empty").className = "";
     hideLoad();
     sel = null;
+    exitMax();
     layout();
     render();
   });
-  document.getElementById("full").addEventListener("click", function () {
+
+  function fsEl() {
+    return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+  }
+  function canNativeFs() {
+    if (document.fullscreenEnabled || document.webkitFullscreenEnabled || document.msFullscreenEnabled) return true;
+    try {
+      if (document.featurePolicy && document.featurePolicy.allowsFeature) return document.featurePolicy.allowsFeature("fullscreen");
+    } catch (e) {}
+    return false;
+  }
+  function askFs(el) {
+    if (!el) return Promise.reject();
+    try {
+      if (el.requestFullscreen) return el.requestFullscreen();
+      if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+        return Promise.resolve();
+      }
+      if (el.msRequestFullscreen) {
+        el.msRequestFullscreen();
+        return Promise.resolve();
+      }
+    } catch (e) {
+      return Promise.reject(e);
+    }
+    return Promise.reject();
+  }
+  function exitFs() {
+    try {
+      if (document.exitFullscreen) return document.exitFullscreen();
+      if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+      if (document.msExitFullscreen) return document.msExitFullscreen();
+    } catch (e) {}
+  }
+  function enterMax() {
+    document.body.classList.add("max");
+    document.getElementById("full").className = "on";
+    layout();
+  }
+  function exitMax() {
+    document.body.classList.remove("max");
+    document.getElementById("full").className = "";
+    layout();
+  }
+  function goFull() {
+    if (fsEl()) {
+      exitFs();
+      exitMax();
+      return;
+    }
+    if (document.body.classList.contains("max")) {
+      exitMax();
+      return;
+    }
+    if (!canNativeFs()) {
+      enterMax();
+      return;
+    }
     var box = document.getElementById("play");
-    if (box.requestFullscreen) box.requestFullscreen();
-  });
-  document.addEventListener("fullscreenchange", layout);
+    var p = askFs(box);
+    if (p && p.then) {
+      p.then(function () {
+        if (fsEl()) { document.getElementById("full").className = "on"; layout(); }
+        else enterMax();
+      }).catch(function () { enterMax(); });
+    } else {
+      setTimeout(function () {
+        if (fsEl()) { document.getElementById("full").className = "on"; layout(); }
+        else enterMax();
+      }, 80);
+    }
+  }
+  function onFsChange() {
+    if (!fsEl()) document.getElementById("full").className = document.body.classList.contains("max") ? "on" : "";
+    else document.getElementById("full").className = "on";
+    layout();
+  }
+  function bootPlay() {
+    if (bootGame && games[bootGame] && !sel) play(bootGame);
+  }
+
+  document.getElementById("full").addEventListener("click", goFull);
+  document.addEventListener("fullscreenchange", onFsChange);
+  document.addEventListener("webkitfullscreenchange", onFsChange);
 
   loadCache();
   render();
   layout();
+  if (bootGame) enterMax();
+  bootPlay();
   window.addEventListener("resize", layout);
   if (window.visualViewport) window.visualViewport.addEventListener("resize", layout);
   scan();
