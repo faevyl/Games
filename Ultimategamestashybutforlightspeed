@@ -661,6 +661,7 @@
     return { w: Math.max(320, w), h: Math.max(240, h) };
   }
 
+  var lastLayout = "";
   function layout() {
     var vp = viewport();
     var bar = document.getElementById("bar");
@@ -672,6 +673,9 @@
     document.body.classList.toggle("tight", tight);
     var h = Math.max(240, vp.h - barH);
     var playW = Math.max(280, vp.w - (!tight && !document.body.classList.contains("max") ? 280 : 0));
+    var key = playW + "x" + h + ":" + vp.w + "x" + vp.h + ":" + tight + ":" + document.body.className;
+    if (key === lastLayout) return;
+    lastLayout = key;
     document.documentElement.style.height = vp.h + "px";
     document.body.style.width = vp.w + "px";
     document.body.style.height = vp.h + "px";
@@ -702,13 +706,14 @@
       "window.RufflePlayer.config=Object.assign(" + ruffleConfigJson() + ",window.RufflePlayer.config||{});" +
       "var lw=0,lh=0;" +
       "function sz(){var w=Math.max(320,window.innerWidth||document.documentElement.clientWidth||320),h=Math.max(240,window.innerHeight||document.documentElement.clientHeight||240);" +
+      "if(w===lw&&h===lh)return;lw=w;lh=h;" +
       "document.documentElement.style.width=w+'px';document.documentElement.style.height=h+'px';" +
       "if(document.body){document.body.style.width=w+'px';document.body.style.height=h+'px';document.body.style.margin='0';}" +
       "var n=document.querySelectorAll('ruffle-player,ruffle-embed,ruffle-object,#unity-canvas,#unityContainer');" +
       "for(var i=0;i<n.length;i++){n[i].style.width=w+'px';n[i].style.height=h+'px';n[i].style.maxWidth='none';n[i].style.maxHeight='none';}" +
       "if(window.EJS_core||window.EJS_player){var g=document.getElementById('game');if(g){g.style.width=w+'px';g.style.height=h+'px';}}" +
-      "if(w!==lw||h!==lh){lw=w;lh=h;window.dispatchEvent(new Event('resize'));}}" +
-      "setInterval(sz,400);window.addEventListener('resize',sz);" +
+      "window.dispatchEvent(new Event('resize'));}" +
+      "setInterval(sz,2000);window.addEventListener('resize',sz);" +
       "if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',sz);else sz();" +
       "})();<\/script>";
     if (/<head[^>]*>/i.test(html)) return html.replace(/<head([^>]*)>/i, "<head$1>" + fit);
@@ -717,16 +722,17 @@
 
   function ruffleConfigJson(swf) {
     var src = swf ? cleanUrl(swf) : "";
+    var isaac = /binding.?of.?isaac|the_binding_of_isaac/i.test(src);
     return JSON.stringify({
       autoplay: "on",
       unmuteOverlay: "hidden",
-      letterbox: "on",
+      letterbox: isaac ? "off" : "on",
       backgroundColor: "#000000",
       publicPath: RUFFLE_DIR,
-      preferredRenderer: ruffleRenderer,
+      preferredRenderer: isaac && webgl.level >= 2 ? "wgpu-webgl" : ruffleRenderer,
       quality: "high",
-      scale: "showAll",
-      forceScale: true,
+      scale: isaac ? "exactFit" : "showAll",
+      forceScale: !isaac,
       maxExecutionDuration: 90,
       allowNetworking: "all",
       base: src ? dirOf(src) : null
@@ -735,32 +741,34 @@
 
   function ruffleDoc(swf) {
     var src = cleanUrl(swf);
+    var cfg = JSON.parse(ruffleConfigJson(src));
     var opts = {
       url: src,
       base: dirOf(src),
-      autoplay: "on",
-      unmuteOverlay: "hidden",
-      letterbox: "on",
-      backgroundColor: "#000000",
-      publicPath: RUFFLE_DIR,
-      preferredRenderer: ruffleRenderer,
-      quality: "high",
-      scale: "showAll",
-      forceScale: true,
-      maxExecutionDuration: 90,
-      allowNetworking: "all"
+      autoplay: cfg.autoplay,
+      unmuteOverlay: cfg.unmuteOverlay,
+      letterbox: cfg.letterbox,
+      backgroundColor: cfg.backgroundColor,
+      publicPath: cfg.publicPath,
+      preferredRenderer: cfg.preferredRenderer,
+      quality: cfg.quality,
+      scale: cfg.scale,
+      forceScale: cfg.forceScale,
+      maxExecutionDuration: cfg.maxExecutionDuration,
+      allowNetworking: cfg.allowNetworking
     };
-    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body,#g{margin:0;width:100%;height:100%;min-width:320px;min-height:240px;background:#000;overflow:hidden}ruffle-player{position:fixed;inset:0;width:100%;height:100%;min-width:320px;min-height:240px}</style>" +
+    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style id='embed-fit'>html,body,#g{margin:0;width:100%;height:100%;min-width:320px;min-height:240px;background:#000;overflow:hidden}ruffle-player{position:fixed;inset:0;width:100%;height:100%;min-width:320px;min-height:240px}</style>" +
       "<script>window.RufflePlayer={config:" + ruffleConfigJson(src) + "};<\/script>" +
       "<script src='" + RUFFLE + "'><\/script></head><body><div id='g'></div>" +
       "<script>(function(){function boot(){if(!window.RufflePlayer||!window.RufflePlayer.newest){setTimeout(boot,40);return;}" +
       "var w=window.RufflePlayer.newest();if(!w||!w.createPlayer){setTimeout(boot,40);return;}" +
-      "var p=w.createPlayer();p.style.position='fixed';p.style.inset='0';" +
+      "var p=w.createPlayer();p.style.position='fixed';p.style.inset='0';p.style.width='100%';p.style.height='100%';" +
+      "var lx=0,ly=0;" +
       "function sz(){var x=Math.max(320,window.innerWidth||320),y=Math.max(240,window.innerHeight||240);" +
-      "p.style.width=x+'px';p.style.height=y+'px';p.style.minWidth='320px';p.style.minHeight='240px';" +
+      "if(x===lx&&y===ly)return;lx=x;ly=y;" +
       "document.documentElement.style.width=x+'px';document.documentElement.style.height=y+'px';" +
       "if(document.body){document.body.style.width=x+'px';document.body.style.height=y+'px';}}" +
-      "sz();window.addEventListener('resize',sz);setInterval(sz,400);" +
+      "sz();window.addEventListener('resize',sz);setInterval(sz,2000);" +
       "document.getElementById('g').appendChild(p);p.load(" + JSON.stringify(opts) + ");}" +
       "boot();})();<\/script></body></html>";
   }
