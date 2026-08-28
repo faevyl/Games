@@ -29,7 +29,7 @@
   }
   #bar button.on, #tabs button.on { background: #3a3020; color: #f0e0c0; border-color: #c8a060; }
   #stat { font-size: 11px; color: #7a6a52; white-space: nowrap; }
-  #main { flex: 1 1 auto; display: flex; min-height: 0; height: 100%; }
+  #main { flex: 1 1 auto; display: flex; min-height: 240px; height: 100%; }
   #side {
     width: 280px; max-width: 42%; overflow: auto; background: #101418;
     border-right: 1px solid #3a3226; flex: 0 0 auto;
@@ -49,11 +49,12 @@
   .g:hover, .g.sel { border-color: #c8a060; color: #f0e0c0; }
   .g b { display: block; font-weight: 400; color: #f0e0c0; }
   .g i { font-style: normal; font-size: 11px; color: #8a7a62; }
-  #play { flex: 1 1 auto; position: relative; background: #000; min-width: 0; min-height: 240px; }
+  #play { flex: 1 1 auto; position: relative; background: #000; min-width: 280px; min-height: 240px; }
   #play iframe {
-    position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000;
-    display: block;
+    position: absolute; inset: 0; width: 100%; height: 100%; min-width: 280px; min-height: 240px;
+    border: 0; background: #000; display: block;
   }
+  body.playing #play { min-width: 320px; }
   #empty {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     color: #8a7a62; text-align: center; padding: 24px; pointer-events: none;
@@ -86,6 +87,9 @@
     position: absolute; top: 6px; right: 8px; border: 0; background: transparent;
     color: #8a7a62; font: 16px Georgia, serif; cursor: pointer; padding: 2px 6px;
   }
+  body.max #side, body.playing.tight #side { display: none; }
+  #play:fullscreen, #play:-webkit-full-screen,
+  html:fullscreen, html:-webkit-full-screen { width: 100%; height: 100%; background: #000; }
 </style>
 </head>
 <body>
@@ -110,7 +114,7 @@
   </div>
   <div id="play">
     <div id="empty">Pick a game.</div>
-    <iframe id="frame" title="game" allow="autoplay; fullscreen; gamepad; clipboard-write; xr-spatial-tracking" allowfullscreen></iframe>
+    <iframe id="frame" title="game" allow="autoplay; fullscreen; gamepad; clipboard-write; xr-spatial-tracking" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true"></iframe>
     <div id="load" class="on">
       <div id="spin"></div>
       <b>WHY REVIVED</b>
@@ -129,8 +133,8 @@
   var BUNNY = "https://jsdelivr.b-cdn.net/gh/";
   var LITE = "Craf1ed/lite-assets@main/";
   var SERAPH = "a456pur/seraph@ae2fcc6d6a9cd051654fcc0519080db1f79cf2a7/";
-  var RUFFLE = CDN + "u-cvlassrom-y/google@main/ruffle.js";
-  var RUFFLE_DIR = CDN + "u-cvlassrom-y/google@main/";
+  var RUFFLE = "https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.5.0/ruffle.js";
+  var RUFFLE_DIR = "https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.5.0/";
   var EJS = CDN + "a456pur/seraph@81f551ca0aa8e3d6018d32d8ac5904ac9bc78f76/storage/emulatorjs/data";
   var API = "https://api.github.com/repos/Craf1ed/lite-assets/contents/";
   var NAMES = {
@@ -170,7 +174,26 @@
     "super-mario-64-ds.html": "Super Mario 64 DS",
     "mario-kart-ds.html": "Mario Kart DS",
     "mario-party-ds.html": "Mario Party DS",
-    "animal-crossing-wild-world.html": "Animal Crossing: Wild World"
+    "animal-crossing-wild-world.html": "Animal Crossing: Wild World",
+    "seraph/thebindingofisaac": "The Binding of Isaac",
+    "seraph/fancypantsadventure": "Fancy Pants Adventure",
+    "seraph/fancypantsadventure2": "Fancy Pants Adventure 2",
+    "seraph/fancypantsadventure3": "Fancy Pants Adventure 3",
+    "seraph/themehotel": "Theme Hotel",
+    "seraph/breakingthebank": "Breaking the Bank",
+    "seraph/escapingtheprison": "Escaping the Prison",
+    "seraph/stealingthediamond": "Stealing the Diamond",
+    "seraph/infiltratingtheairship": "Infiltrating the Airship",
+    "seraph/fleeingthecomplex": "Fleeing the Complex",
+    "seraph/learntofly": "Learn to Fly",
+    "seraph/learntofly2": "Learn to Fly 2",
+    "seraph/learntofly3": "Learn to Fly 3",
+    "seraph/worldshardestgame": "World's Hardest Game",
+    "seraph/thisistheonlylevel": "This Is the Only Level",
+    "seraph/electricman2": "Electric Man 2",
+    "seraph/linerider": "Line Rider",
+    "seraph/chibiknight": "Chibi Knight",
+    "seraph/supermarioflash": "Super Mario Flash"
   };
   var SEED = [
     ["achillies-1-fr.html", "flash"],
@@ -205,6 +228,21 @@
     ["riddle-school-5", "flash", CDN + SERAPH + "games/riddleschool/riddleschool5/index.html"],
     ["riddle-transfer.html", "flash"],
     ["riddle-transfer-2.html", "flash"],
+    ["seraph/breakingthebank", "flash", CDN + SERAPH + "games/breakingthebank/breaking-the-bank.swf"],
+    ["seraph/escapingtheprison", "flash", CDN + SERAPH + "games/escapingtheprison/escapingtheprison.swf"],
+    ["seraph/stealingthediamond", "flash", CDN + SERAPH + "games/stealingthediamond/stealingthediamond.swf"],
+    ["seraph/infiltratingtheairship", "flash", CDN + SERAPH + "games/infiltratingtheairship/infiltratingtheairship.swf"],
+    ["seraph/fleeingthecomplex", "flash", CDN + SERAPH + "games/fleeingthecomplex/5.swf"],
+    ["seraph/themehotel", "flash", CDN + SERAPH + "games/themehotel/themehotel.swf"],
+    ["seraph/learntofly", "flash", CDN + SERAPH + "games/learntofly/ltf.swf"],
+    ["seraph/learntofly2", "flash", CDN + SERAPH + "games/learntofly2/learn-to-fly-2.swf"],
+    ["seraph/learntofly3", "flash", CDN + SERAPH + "games/learntofly3/learn-to-fly-3.swf"],
+    ["seraph/worldshardestgame", "flash", CDN + SERAPH + "games/worldshardestgame/whg.swf"],
+    ["seraph/thisistheonlylevel", "flash", CDN + SERAPH + "games/thisistheonlylevel/thisistheonlylevel.swf"],
+    ["seraph/electricman2", "flash", CDN + SERAPH + "games/electricman2/electric-man-2.swf"],
+    ["seraph/linerider", "flash", CDN + SERAPH + "games/linerider/line-rider.swf"],
+    ["seraph/chibiknight", "flash", CDN + SERAPH + "games/chibiknight/chibiknight.swf"],
+    ["seraph/supermarioflash", "flash", CDN + SERAPH + "games/supermarioflash/super-mario-flash.swf"],
     ["gun-mayhem.html", "flash"],
     ["gun-mayhem-2.html", "web"],
     ["gun-mayhem-redux.html", "flash"],
@@ -219,8 +257,6 @@
     ["escape-road.html", "web"],
     ["seraph/fnaf", "web", CDN + SERAPH + "games/fnaf/index.html"],
     ["halflife.html", "web"],
-    ["seraph/halflife", "web", CDN + SERAPH + "games/halflife/index.html"],
-    ["seraph/half-life", "web", CDN + SERAPH + "games/half-life/index.html"],
     ["mario-kart-ds.html", "nds"],
     ["mario-party-ds.html", "nds"],
     ["super-mario-64-ds.html", "nds"],
@@ -239,13 +275,53 @@
     "little-alchemy-2": 1,
     "little-alchemy-2/index.html": 1,
     "infinitecraft": 1,
-    "seraph/infinitecraft": 1
+    "seraph/infinitecraft": 1,
+    "seraph/halflife": 1,
+    "seraph/half-life": 1
   };
+  // Only SWFs that stay blank without wgpu (BitmapData.draw). Everything else is always listed.
+  var GPU_SWF = [
+    ["seraph/thebindingofisaac", "the_binding_of_isaac.swf"],
+    ["seraph/fancypantsadventure", "fancypantsadventure.swf"],
+    ["seraph/fancypantsadventure2", "fancy-pants-adventure2.swf"],
+    ["seraph/fancypantsadventure3", "FPAWorld3.swf"]
+  ];
+  var GPU_FILE = {};
+  GPU_SWF.forEach(function (row) { GPU_FILE[row[0]] = 1; });
   var games = {};
   var tab = "all";
   var sel = null;
   var query = "";
+  var webgl = (function () {
+    try {
+      var c = document.createElement("canvas");
+      var gl2 = c.getContext("webgl2");
+      if (gl2) {
+        gl2.getParameter(gl2.VERSION);
+        return { ok: true, level: 2 };
+      }
+      var gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+      if (gl) {
+        gl.getParameter(gl.VERSION);
+        return { ok: true, level: 1 };
+      }
+    } catch (e) {}
+    return { ok: false, level: 0 };
+  })();
+  var hasWebgpu = (function () {
+    try { return !!(navigator.gpu && navigator.gpu.requestAdapter); } catch (e) { return false; }
+  })();
+  // Canvas cannot draw BitmapData (Isaac walls, Fancy Pants rooms). Prefer WebGPU, then wgpu-webgl.
+  // Never pick canvas as the preferred backend.
+  var ruffleRenderer = hasWebgpu ? "webgpu" : "wgpu-webgl";
+  var gpuPlay = webgl.level >= 2 || hasWebgpu;
   var framed = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();
+  var bootGame = (function () {
+    var blob = String(location.hash || "") + "&" + String(location.search || "");
+    var m = blob.match(/[#&?]play=([^&]*)/);
+    if (!m) return "";
+    try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; }
+  })();
 
   function titleOf(file) {
     if (NAMES[file]) return NAMES[file];
@@ -321,7 +397,7 @@
   function folderSite(file) {
     var p = String(file || "");
     if (!p) return true;
-    if (/ragdoll-archers|riddle-school-5|(^|\/)fnaf$|(^|\/)half-?life/i.test(p)) return false;
+    if (/ragdoll-archers|riddle-school-5|(^|\/)fnaf$|(^|\/)half-?life|thebindingofisaac|binding-?of-?isaac|fancypants|themehotel|escapingtheprison|stealingthediamond|infiltratingtheairship|fleeingthecomplex|breakingthebank|learntofly|worldshardestgame|thisistheonlylevel|electricman|linerider|chibiknight|supermarioflash|supersmashflash/i.test(p)) return false;
     if (p.indexOf("/") !== -1) return true;
     if (/^seraph\//i.test(p)) return true;
     return false;
@@ -329,6 +405,7 @@
 
   function add(file, kind, dest) {
     if (!file || BLOCK_FILE[file] || BLOCK_FILE[file.replace(/\/index\.html$/i, "")] || games[file]) return;
+    if (!gpuPlay && GPU_FILE[file]) return;
     if (folderSite(file)) return;
     dest = dest ? cleanUrl(dest) : "";
     if (dest && destBlocked(dest)) return;
@@ -336,6 +413,11 @@
   }
 
   SEED.forEach(function (row) { add(row[0], row[1], row[2]); });
+  if (gpuPlay) {
+    GPU_SWF.forEach(function (row) {
+      add(row[0], "flash", CDN + SERAPH + "games/" + row[0].slice(7) + "/" + row[1]);
+    });
+  }
 
   function kindLabel(kind) {
     if (kind === "nds") return "Nintendo DS";
@@ -366,7 +448,8 @@
       else if (games[k].kind === "nds") dsN++;
       else webN++;
     }
-    document.getElementById("stat").textContent = flashN + " ruffle · " + dsN + " ds · " + webN + " html";
+    document.getElementById("stat").textContent = flashN + " ruffle · " + dsN + " ds · " + webN + " html · " +
+      (hasWebgpu ? "webgpu" : (webgl.level >= 2 ? "webgl2" : (webgl.level === 1 ? "webgl" : "no gpu")));
     document.getElementById("list").innerHTML = rows.map(function (g) {
       return '<button type="button" class="g' + (sel === g.file ? " sel" : "") + '" data-file="' + g.file.replace(/"/g, "") + '">' +
         "<b>" + g.name.replace(/</g, "") + "</b><i>" + kindLabel(g.kind) + "</i></button>";
@@ -508,11 +591,15 @@
 
   function viewport() {
     var vv = window.visualViewport;
-    if (vv && vv.height) return { w: Math.max(1, Math.round(vv.width)), h: Math.max(1, Math.round(vv.height)) };
-    return {
-      w: Math.max(1, window.innerWidth || document.documentElement.clientWidth || 640),
-      h: Math.max(1, window.innerHeight || document.documentElement.clientHeight || 480)
-    };
+    var w, h;
+    if (vv && vv.height) {
+      w = Math.round(vv.width);
+      h = Math.round(vv.height);
+    } else {
+      w = window.innerWidth || document.documentElement.clientWidth || 0;
+      h = window.innerHeight || document.documentElement.clientHeight || 0;
+    }
+    return { w: Math.max(320, w), h: Math.max(240, h) };
   }
 
   function layout() {
@@ -521,34 +608,42 @@
     var main = document.getElementById("main");
     var play = document.getElementById("play");
     var frame = document.getElementById("frame");
-    var barH = bar ? bar.offsetHeight : 44;
-    var h = Math.max(200, vp.h - barH);
+    var barH = Math.max(36, bar ? bar.offsetHeight : 44);
+    var tight = vp.w < 700 || (document.body.classList.contains("playing") && vp.w < 900);
+    document.body.classList.toggle("tight", tight);
+    var h = Math.max(240, vp.h - barH);
+    var playW = Math.max(280, vp.w - (!tight && !document.body.classList.contains("max") ? 280 : 0));
     document.documentElement.style.height = vp.h + "px";
     document.body.style.width = vp.w + "px";
     document.body.style.height = vp.h + "px";
     main.style.height = h + "px";
+    play.style.width = playW + "px";
     play.style.height = h + "px";
-    frame.style.width = "100%";
+    play.style.minWidth = "280px";
+    play.style.minHeight = "240px";
+    frame.style.width = playW + "px";
     frame.style.height = h + "px";
+    frame.style.minWidth = "280px";
+    frame.style.minHeight = "240px";
   }
 
   function injectFit(html) {
     html = String(html || "");
     if (/id=['"]embed-fit['"]/.test(html)) return html;
-    var renderer = framed ? "canvas" : "auto";
     var shell = /ruffle|unity-canvas|createUnityInstance|EJS_|createPlayer|\.swf/i.test(html);
     var fit = "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
       "<style id='embed-fit'>html,body{margin:0!important;width:100%!important;height:100%!important;min-height:100%!important;background:#000" +
       (shell ? ";overflow:hidden!important" : "") + "}" +
       "ruffle-player,ruffle-embed,ruffle-object{display:block!important;width:100%!important;height:100%!important}" +
+      "ruffle-player canvas{image-rendering:auto}" +
       (shell ? "#game,#unity-canvas,#unityContainer{width:100%!important;height:100%!important}" : "") +
       ".unsupported-container,.unsupported-text{display:none!important}</style>" +
       "<script id='embed-fit-js'>(function(){" +
       "window.RufflePlayer=window.RufflePlayer||{};" +
-      "window.RufflePlayer.config=Object.assign({autoplay:'on',unmuteOverlay:'hidden',letterbox:'on',backgroundColor:'#000000',publicPath:" + JSON.stringify(RUFFLE_DIR) + ",preferredRenderer:" + JSON.stringify(renderer) + "},window.RufflePlayer.config||{});" +
+      "window.RufflePlayer.config=Object.assign(" + ruffleConfigJson() + ",window.RufflePlayer.config||{});" +
       "var lw=0,lh=0;" +
-      "function sz(){var w=window.innerWidth||document.documentElement.clientWidth,h=window.innerHeight||document.documentElement.clientHeight;" +
-      "if(!w||!h)return;document.documentElement.style.width=w+'px';document.documentElement.style.height=h+'px';" +
+      "function sz(){var w=Math.max(320,window.innerWidth||document.documentElement.clientWidth||320),h=Math.max(240,window.innerHeight||document.documentElement.clientHeight||240);" +
+      "document.documentElement.style.width=w+'px';document.documentElement.style.height=h+'px';" +
       "if(document.body){document.body.style.width=w+'px';document.body.style.height=h+'px';document.body.style.margin='0';}" +
       "var n=document.querySelectorAll('ruffle-player,ruffle-embed,ruffle-object,#unity-canvas,#unityContainer');" +
       "for(var i=0;i<n.length;i++){n[i].style.width=w+'px';n[i].style.height=h+'px';n[i].style.maxWidth='none';n[i].style.maxHeight='none';}" +
@@ -561,22 +656,59 @@
     return fit + html;
   }
 
+  function ruffleConfigJson(swf) {
+    var src = swf ? cleanUrl(swf) : "";
+    return JSON.stringify({
+      autoplay: "on",
+      unmuteOverlay: "hidden",
+      letterbox: "on",
+      backgroundColor: "#000000",
+      publicPath: RUFFLE_DIR,
+      preferredRenderer: ruffleRenderer,
+      quality: "high",
+      scale: "showAll",
+      forceScale: true,
+      maxExecutionDuration: 90,
+      allowNetworking: "all",
+      base: src ? dirOf(src) : null
+    });
+  }
+
   function ruffleDoc(swf) {
     var src = cleanUrl(swf);
-    var renderer = framed ? "canvas" : "auto";
-    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body,#g{margin:0;width:100%;height:100%;background:#000;overflow:hidden}</style>" +
-      "<script>window.RufflePlayer={config:{autoplay:'on',unmuteOverlay:'hidden',letterbox:'on',backgroundColor:'#000000',publicPath:" + JSON.stringify(RUFFLE_DIR) + ",preferredRenderer:" + JSON.stringify(renderer) + "}};<\/script>" +
+    var opts = {
+      url: src,
+      base: dirOf(src),
+      autoplay: "on",
+      unmuteOverlay: "hidden",
+      letterbox: "on",
+      backgroundColor: "#000000",
+      publicPath: RUFFLE_DIR,
+      preferredRenderer: ruffleRenderer,
+      quality: "high",
+      scale: "showAll",
+      forceScale: true,
+      maxExecutionDuration: 90,
+      allowNetworking: "all"
+    };
+    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body,#g{margin:0;width:100%;height:100%;min-width:320px;min-height:240px;background:#000;overflow:hidden}ruffle-player{position:fixed;inset:0;width:100%;height:100%;min-width:320px;min-height:240px}</style>" +
+      "<script>window.RufflePlayer={config:" + ruffleConfigJson(src) + "};<\/script>" +
       "<script src='" + RUFFLE + "'><\/script></head><body><div id='g'></div>" +
       "<script>(function(){function boot(){if(!window.RufflePlayer||!window.RufflePlayer.newest){setTimeout(boot,40);return;}" +
       "var w=window.RufflePlayer.newest();if(!w||!w.createPlayer){setTimeout(boot,40);return;}" +
-      "var p=w.createPlayer();p.style.position='fixed';p.style.inset='0';p.style.width='100%';p.style.height='100%';" +
-      "document.getElementById('g').appendChild(p);p.load(" + JSON.stringify(src) + ");}" +
+      "var p=w.createPlayer();p.style.position='fixed';p.style.inset='0';" +
+      "function sz(){var x=Math.max(320,window.innerWidth||320),y=Math.max(240,window.innerHeight||240);" +
+      "p.style.width=x+'px';p.style.height=y+'px';p.style.minWidth='320px';p.style.minHeight='240px';" +
+      "document.documentElement.style.width=x+'px';document.documentElement.style.height=y+'px';" +
+      "if(document.body){document.body.style.width=x+'px';document.body.style.height=y+'px';}}" +
+      "sz();window.addEventListener('resize',sz);setInterval(sz,400);" +
+      "document.getElementById('g').appendChild(p);p.load(" + JSON.stringify(opts) + ");}" +
       "boot();})();<\/script></body></html>";
   }
 
   function ndsDoc(rom) {
     var url = cleanUrl(rom);
-    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden}#game{position:fixed;inset:0}</style></head><body>" +
+    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body,#game{margin:0;width:100%;height:100%;min-width:320px;min-height:240px;background:#000;overflow:hidden}#game{position:fixed;inset:0}</style></head><body>" +
       "<div id='game'></div><script>EJS_player='#game';EJS_core='nds';EJS_color='#000000';EJS_startOnLoaded=true;" +
       "EJS_pathtodata=" + JSON.stringify(EJS) + ";EJS_gameUrl=" + JSON.stringify(url) + ";<\/script>" +
       "<script src='" + EJS + "/loader.js'><\/script></body></html>";
@@ -668,7 +800,7 @@
       return;
     }
     sel = file;
-    document.body.className = "playing";
+    document.body.classList.add("playing");
     document.getElementById("empty").className = "hide";
     setLoad(true, "loading " + g.name + "…");
     layout();
@@ -694,13 +826,13 @@
         show(withBase(html, dirOf(mirrors(url)[0])));
         return;
       }
+      if (swf && /\.swf($|\?)/i.test(swf) && !destBlocked(swf)) {
+        show(ruffleDoc(swf));
+        return;
+      }
       var pageDest = g.dest && /\.html($|\?)/i.test(g.dest);
       if (pageDest) {
         show(withBase(html, dirOf(mirrors(url)[0])));
-        return;
-      }
-      if (swf && /\.swf($|\?)/i.test(swf) && !destBlocked(swf)) {
-        show(ruffleDoc(swf));
         return;
       }
       var cdnPage = ownCdnBase(html);
@@ -734,13 +866,13 @@
 
   function saveCache() {
     try {
-      localStorage.setItem("liteFlashDs9", JSON.stringify({ t: Date.now(), games: games }));
+      localStorage.setItem("liteFlashDs10", JSON.stringify({ t: Date.now(), games: games }));
     } catch (e) {}
   }
 
   function loadCache() {
     try {
-      var raw = localStorage.getItem("liteFlashDs9");
+      var raw = localStorage.getItem("liteFlashDs10");
       if (!raw) return;
       var data = JSON.parse(raw);
       if (!data || !data.games || Date.now() - data.t > 7 * 24 * 60 * 60 * 1000) return;
@@ -765,7 +897,7 @@
       var n = f.name.toLowerCase();
       var sz = f.size || 0;
       if (n.indexOf("gba") !== -1 || n.indexOf("nes") !== -1 || n.indexOf("n64") !== -1) return false;
-      if (/flash|ruffle|swf|achill|riddle|cookie|granny|burger|fnaf|gun-mayhem|ragdoll|alchem|infinite-craft|drive-mad|escape-road|parenting/.test(n)) return true;
+      if (/flash|ruffle|swf|achill|riddle|cookie|granny|burger|fnaf|gun-mayhem|ragdoll|alchem|infinite-craft|drive-mad|escape-road|parenting|isaac/.test(n)) return true;
       if (/ds|dsi|nds/.test(n) && !/lands|roads|cards|words|birds|mods/.test(n)) return true;
       if (sz >= 900 && sz <= 1600) return true;
       if (sz >= 2400 && sz <= 4500) return true;
@@ -800,6 +932,7 @@
     await scanSeraph();
     saveCache();
     render();
+    bootPlay();
     if (!sel) hideLoad();
   }
 
@@ -827,22 +960,105 @@
     var frame = document.getElementById("frame");
     frame.srcdoc = "";
     frame.src = "about:blank";
-    document.body.className = "";
+    document.body.classList.remove("playing");
     document.getElementById("empty").className = "";
     hideLoad();
     sel = null;
+    exitMax();
     layout();
     render();
   });
-  document.getElementById("full").addEventListener("click", function () {
+
+  function fsEl() {
+    return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+  }
+  function canNativeFs() {
+    if (document.fullscreenEnabled || document.webkitFullscreenEnabled || document.msFullscreenEnabled) return true;
+    try {
+      if (document.featurePolicy && document.featurePolicy.allowsFeature) return document.featurePolicy.allowsFeature("fullscreen");
+    } catch (e) {}
+    return false;
+  }
+  function askFs(el) {
+    if (!el) return Promise.reject();
+    try {
+      if (el.requestFullscreen) return el.requestFullscreen();
+      if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+        return Promise.resolve();
+      }
+      if (el.msRequestFullscreen) {
+        el.msRequestFullscreen();
+        return Promise.resolve();
+      }
+    } catch (e) {
+      return Promise.reject(e);
+    }
+    return Promise.reject();
+  }
+  function exitFs() {
+    try {
+      if (document.exitFullscreen) return document.exitFullscreen();
+      if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+      if (document.msExitFullscreen) return document.msExitFullscreen();
+    } catch (e) {}
+  }
+  function enterMax() {
+    document.body.classList.add("max");
+    document.getElementById("full").className = "on";
+    layout();
+  }
+  function exitMax() {
+    document.body.classList.remove("max");
+    document.getElementById("full").className = "";
+    layout();
+  }
+  function goFull() {
+    if (fsEl()) {
+      exitFs();
+      exitMax();
+      return;
+    }
+    if (document.body.classList.contains("max")) {
+      exitMax();
+      return;
+    }
+    if (!canNativeFs()) {
+      enterMax();
+      return;
+    }
     var box = document.getElementById("play");
-    if (box.requestFullscreen) box.requestFullscreen();
-  });
-  document.addEventListener("fullscreenchange", layout);
+    var p = askFs(box);
+    if (p && p.then) {
+      p.then(function () {
+        if (fsEl()) { document.getElementById("full").className = "on"; layout(); }
+        else enterMax();
+      }).catch(function () { enterMax(); });
+    } else {
+      setTimeout(function () {
+        if (fsEl()) { document.getElementById("full").className = "on"; layout(); }
+        else enterMax();
+      }, 80);
+    }
+  }
+  function onFsChange() {
+    if (!fsEl()) document.getElementById("full").className = document.body.classList.contains("max") ? "on" : "";
+    else document.getElementById("full").className = "on";
+    layout();
+  }
+  function bootPlay() {
+    if (bootGame && games[bootGame] && !sel) play(bootGame);
+  }
+
+  document.getElementById("full").addEventListener("click", goFull);
+  document.addEventListener("fullscreenchange", onFsChange);
+  document.addEventListener("webkitfullscreenchange", onFsChange);
 
   loadCache();
   render();
   layout();
+  if (bootGame) enterMax();
+  bootPlay();
   window.addEventListener("resize", layout);
   if (window.visualViewport) window.visualViewport.addEventListener("resize", layout);
   scan();
