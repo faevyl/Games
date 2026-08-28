@@ -175,6 +175,7 @@
     "mario-party-ds.html": "Mario Party DS",
     "animal-crossing-wild-world.html": "Animal Crossing: Wild World",
     "seraph/thebindingofisaac": "The Binding of Isaac",
+    "binding-of-isacc-sheep-time.html": "The Binding of Isaac: Sheep Time",
     "seraph/fancypantsadventure": "Fancy Pants Adventure",
     "seraph/fancypantsadventure2": "Fancy Pants Adventure 2",
     "seraph/fancypantsadventure3": "Fancy Pants Adventure 3",
@@ -297,6 +298,7 @@
   // Only SWFs that stay blank without wgpu (BitmapData.draw). Everything else is always listed.
   var GPU_SWF = [
     ["seraph/thebindingofisaac", "the_binding_of_isaac.swf"],
+    ["binding-of-isacc-sheep-time.html", "https://cdn.jsdelivr.net/gh/RobiFet/CMinterview@a4017231eca9f2173ad7ec0e63b01e4786b4ad6b/web/src/BiWrath.swf"],
     ["seraph/fancypantsadventure", "fancypantsadventure.swf"],
     ["seraph/fancypantsadventure2", "fancy-pants-adventure2.swf"],
     ["seraph/fancypantsadventure3", "FPAWorld3.swf"]
@@ -454,7 +456,8 @@
   SEED.forEach(function (row) { add(row[0], row[1], row[2]); });
   if (gpuPlay) {
     GPU_SWF.forEach(function (row) {
-      add(row[0], "flash", CDN + SERAPH + "games/" + row[0].slice(7) + "/" + row[1]);
+      var dest = /^https?:/i.test(row[1]) ? row[1] : CDN + SERAPH + "games/" + row[0].slice(7) + "/" + row[1];
+      add(row[0], "flash", dest);
     });
   }
 
@@ -722,7 +725,7 @@
 
   function ruffleConfigJson(swf) {
     var src = swf ? cleanUrl(swf) : "";
-    var isaac = /binding.?of.?isaac|the_binding_of_isaac/i.test(src);
+    var isaac = /binding.?of.?isaa?c|the_binding_of_isaac|BiWrath/i.test(src);
     return JSON.stringify({
       autoplay: "on",
       unmuteOverlay: "hidden",
