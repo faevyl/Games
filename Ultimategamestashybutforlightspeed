@@ -12,43 +12,73 @@
   ROM/SWF/JSON the page points at, not the HTML filename.
 -->
 <style>
-  html, body { margin: 0; width: 100%; height: 100%; min-height: 100%; background: #0c1014; color: #e8dcc8; font-family: Georgia, serif; }
+  :root, [data-theme="why"] {
+    --bg: #0c1014; --fg: #e8dcc8; --bar: #14181e; --line: #3a3226; --title: #f0e0c0;
+    --btn: #1a1814; --btn-fg: #c8b490; --accent: #c8a060; --muted: #7a6a52;
+    --side: #101418; --card: #171410; --card-line: #2a241c; --hover: #d8c4a0;
+  }
+  [data-theme="void"] {
+    --bg: #08060e; --fg: #ddd0f0; --bar: #120e1a; --line: #3a2a52; --title: #efe6ff;
+    --btn: #16101f; --btn-fg: #b8a0d8; --accent: #9a70e0; --muted: #7a6a92;
+    --side: #0c0a14; --card: #14101c; --card-line: #2a2038; --hover: #d0c0ec;
+  }
+  [data-theme="arcade"] {
+    --bg: #12080a; --fg: #f0d4c8; --bar: #1c1012; --line: #5a2830; --title: #ffe8dc;
+    --btn: #221014; --btn-fg: #e09080; --accent: #e05040; --muted: #8a6058;
+    --side: #140c0e; --card: #1c1012; --card-line: #3a2024; --hover: #f0c4b8;
+  }
+  [data-theme="moss"] {
+    --bg: #0c1410; --fg: #d4e4cc; --bar: #101814; --line: #2a4a32; --title: #e8f4dc;
+    --btn: #121a14; --btn-fg: #90b888; --accent: #6aaa60; --muted: #62805a;
+    --side: #0c1410; --card: #121a14; --card-line: #243828; --hover: #c8dcb8;
+  }
+  [data-theme="ice"] {
+    --bg: #0a1018; --fg: #d0dce8; --bar: #101820; --line: #2a4058; --title: #e8f0f8;
+    --btn: #121820; --btn-fg: #90b0c8; --accent: #68a0d0; --muted: #6a8098;
+    --side: #0c1218; --card: #121820; --card-line: #243040; --hover: #c8d8e8;
+  }
+  [data-theme="paper"] {
+    --bg: #e8dcc8; --fg: #2a241c; --bar: #f0e6d4; --line: #c8b490; --title: #1a1410;
+    --btn: #f4ead8; --btn-fg: #5a4030; --accent: #8a5030; --muted: #7a6a52;
+    --side: #efe4d2; --card: #f6ecda; --card-line: #d8c4a0; --hover: #3a3020;
+  }
+  html, body { margin: 0; width: 100%; height: 100%; min-height: 100%; background: var(--bg); color: var(--fg); font-family: Georgia, serif; }
   body { display: flex; flex-direction: column; overflow: hidden; }
   #bar {
     flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-    padding: 10px 12px; background: #14181e; border-bottom: 1px solid #3a3226;
+    padding: 10px 12px; background: var(--bar); border-bottom: 1px solid var(--line);
   }
-  #bar h1 { margin: 0 8px 0 0; font-size: 16px; font-weight: 400; letter-spacing: 2px; color: #f0e0c0; }
+  #bar h1 { margin: 0 8px 0 0; font-size: 16px; font-weight: 400; letter-spacing: 2px; color: var(--title); }
   #bar input {
-    flex: 1 1 160px; min-width: 120px; background: #1a1814; color: #f0e0c0;
-    border: 1px solid #4a4030; padding: 6px 8px; font: 13px Georgia, serif;
+    flex: 1 1 160px; min-width: 120px; background: var(--btn); color: var(--title);
+    border: 1px solid var(--line); padding: 6px 8px; font: 13px Georgia, serif;
   }
-  #bar button, #tabs button {
-    background: #1a1814; color: #c8b490; border: 1px solid #4a4030;
+  #bar button, #tabs button, #themes button {
+    background: var(--btn); color: var(--btn-fg); border: 1px solid var(--line);
     font: 12px Georgia, serif; padding: 6px 10px; cursor: pointer;
   }
-  #bar button.on, #tabs button.on { background: #3a3020; color: #f0e0c0; border-color: #c8a060; }
-  #stat { font-size: 11px; color: #7a6a52; white-space: nowrap; }
+  #bar button.on, #tabs button.on, #themes button.on { background: var(--card); color: var(--title); border-color: var(--accent); }
+  #stat { font-size: 11px; color: var(--muted); white-space: nowrap; }
   #main { flex: 1 1 auto; display: flex; min-height: 240px; height: 100%; }
   #side {
-    width: 280px; max-width: 42%; overflow: auto; background: #101418;
-    border-right: 1px solid #3a3226; flex: 0 0 auto;
+    width: 280px; max-width: 42%; overflow: auto; background: var(--side);
+    border-right: 1px solid var(--line); flex: 0 0 auto;
   }
-  #tools { position: sticky; top: 0; z-index: 1; background: #101418; padding: 8px 8px 4px; }
+  #tools { position: sticky; top: 0; z-index: 1; background: var(--side); padding: 8px 8px 4px; }
   #tabs { display: flex; gap: 4px; margin-bottom: 8px; }
   #q {
-    display: block; width: 100%; box-sizing: border-box; background: #1a1814; color: #f0e0c0;
-    border: 1px solid #4a4030; padding: 8px 10px; font: 13px Georgia, serif;
+    display: block; width: 100%; box-sizing: border-box; background: var(--btn); color: var(--title);
+    border: 1px solid var(--line); padding: 8px 10px; font: 13px Georgia, serif;
   }
   #list { padding: 0 8px 12px; }
   .g {
     display: block; width: 100%; text-align: left; margin: 0 0 4px;
-    background: #171410; color: #d8c4a0; border: 1px solid #2a241c;
+    background: var(--card); color: var(--hover); border: 1px solid var(--card-line);
     font: 13px Georgia, serif; padding: 8px 10px; cursor: pointer;
   }
-  .g:hover, .g.sel { border-color: #c8a060; color: #f0e0c0; }
-  .g b { display: block; font-weight: 400; color: #f0e0c0; }
-  .g i { font-style: normal; font-size: 11px; color: #8a7a62; }
+  .g:hover, .g.sel { border-color: var(--accent); color: var(--title); }
+  .g b { display: block; font-weight: 400; color: var(--title); }
+  .g i { font-style: normal; font-size: 11px; color: var(--muted); }
   #play { flex: 1 1 auto; position: relative; background: #000; min-width: 280px; min-height: 240px; }
   #play iframe {
     position: absolute; inset: 0; width: 100%; height: 100%; min-width: 280px; min-height: 240px;
@@ -57,36 +87,52 @@
   body.playing #play { min-width: 320px; }
   #empty {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    color: #8a7a62; text-align: center; padding: 24px; pointer-events: none;
+    color: var(--muted); text-align: center; padding: 24px; pointer-events: none;
   }
   #empty.hide { display: none; }
   #load {
     position: absolute; inset: 0; z-index: 8; display: none;
     flex-direction: column; align-items: center; justify-content: center;
-    background: #0c1014; color: #f0e0c0; text-align: center; padding: 24px;
+    background: var(--bg); color: var(--title); text-align: center; padding: 24px;
   }
   #load.on { display: flex; }
   #spin {
     width: 26px; height: 26px; margin-bottom: 14px;
-    border: 2px solid #3a3226; border-top-color: #c8a060;
+    border: 2px solid var(--line); border-top-color: var(--accent);
     border-radius: 50%; animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-  #load b { display: block; font-weight: 400; letter-spacing: 3px; font-size: 13px; color: #c8a060; margin-bottom: 8px; }
-  #load p { margin: 0; color: #8a7a62; font: 13px Georgia, serif; }
+  #load b { display: block; font-weight: 400; letter-spacing: 3px; font-size: 13px; color: var(--accent); margin-bottom: 8px; }
+  #load p { margin: 0; color: var(--muted); font: 13px Georgia, serif; }
   #note {
     position: fixed; right: 16px; bottom: 16px; z-index: 50; display: none;
     width: 320px; max-width: calc(100% - 24px); padding: 12px 32px 12px 14px;
-    background: #171410; color: #f0e0c0; border: 1px solid #c8a060;
+    background: var(--card); color: var(--title); border: 1px solid var(--accent);
     font: 13px/1.4 Georgia, serif;
   }
   #note.on { display: block; }
-  #note b { display: block; font-weight: 400; letter-spacing: 1px; color: #c8b490; font-size: 11px; margin-bottom: 4px; }
-  #note p { margin: 0; color: #f0e0c0; }
-  #note .x {
+  #note b { display: block; font-weight: 400; letter-spacing: 1px; color: var(--btn-fg); font-size: 11px; margin-bottom: 4px; }
+  #note p { margin: 0; color: var(--title); }
+  #note .x, #sheetX {
     position: absolute; top: 6px; right: 8px; border: 0; background: transparent;
-    color: #8a7a62; font: 16px Georgia, serif; cursor: pointer; padding: 2px 6px;
+    color: var(--muted); font: 16px Georgia, serif; cursor: pointer; padding: 2px 6px;
   }
+  #sheet {
+    display: none; position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.55);
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  #sheet.on { display: flex; }
+  #sheetBox {
+    position: relative; width: 420px; max-width: 100%; max-height: min(70vh, 520px);
+    overflow: auto; background: var(--bar); color: var(--fg); border: 1px solid var(--accent);
+    padding: 16px 16px 12px;
+  }
+  #sheetBox h2 { margin: 0 28px 12px 0; font-size: 13px; font-weight: 400; letter-spacing: 2px; color: var(--accent); }
+  .log { margin: 0 0 12px; padding: 0 0 10px; border-bottom: 1px solid var(--line); }
+  .log:last-child { border-bottom: 0; margin-bottom: 0; }
+  .log b { display: block; font-weight: 400; font-size: 11px; letter-spacing: 1px; color: var(--btn-fg); margin-bottom: 4px; }
+  .log p { margin: 0; font: 13px/1.45 Georgia, serif; color: var(--fg); }
+  #themes { display: flex; flex-wrap: wrap; gap: 6px; }
   body.max #side, body.playing.tight #side { display: none; }
   #play:fullscreen, #play:-webkit-full-screen,
   html:fullscreen, html:-webkit-full-screen { width: 100%; height: 100%; background: #000; }
@@ -97,6 +143,8 @@
   <h1>WHY REVIVED</h1>
   <button type="button" id="back">LIST</button>
   <button type="button" id="full">FULL</button>
+  <button type="button" id="logBtn">LOG</button>
+  <button type="button" id="themeBtn">THEME</button>
   <span id="stat">loading…</span>
 </div>
 <div id="main">
@@ -127,6 +175,16 @@
   <p id="noteMsg">yk i cant load roblox, sorry...</p>
   <button type="button" class="x" id="noteX" aria-label="close">×</button>
 </div>
+<div id="sheet">
+  <div id="sheetBox">
+    <button type="button" id="sheetX" aria-label="close">×</button>
+    <h2 id="sheetTitle">UPDATE LOG</h2>
+    <div id="logPane"></div>
+    <div id="themePane" style="display:none">
+      <div id="themes"></div>
+    </div>
+  </div>
+</div>
 <script>
 (function () {
   var CDN = "https://cdn.jsdelivr.net/gh/";
@@ -137,6 +195,21 @@
   var RUFFLE_DIR = "https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.5.0/";
   var EJS = CDN + "a456pur/seraph@81f551ca0aa8e3d6018d32d8ac5904ac9bc78f76/storage/emulatorjs/data";
   var API = "https://api.github.com/repos/Craf1ed/lite-assets/contents/";
+  var THEMES = [
+    ["why", "Why"],
+    ["void", "Void"],
+    ["arcade", "Arcade"],
+    ["moss", "Moss"],
+    ["ice", "Ice"],
+    ["paper", "Paper"]
+  ];
+  var LOGS = [
+    ["Aug 28, 2026", "Themes + update log. Isaac Sheep Time. Isaac no longer flashes the previous frame."],
+    ["Aug 27, 2026", "Nova Craft listed (GitHub, jsDelivr 403s genizy). Duplicate rows removed. Pokemon Diamond & Pearl. Play area stays at least 320×240."],
+    ["Aug 27, 2026", "Henry Stickmin and other canvas-safe SWFs always listed. Only Isaac and Fancy Pants wait for WebGL2/WebGPU."],
+    ["Aug 27, 2026", "Ruffle 0.5.0. Isaac/Fancy Pants walls via wgpu. Loading overlay. FULL fills the Sites embed. Roblox joke stays."],
+    ["Aug 26, 2026", "Riddle School 1–5 + Transfers, FNAF 1, Half-Life, Granny, Bad Parenting, Ragdoll Archers."]
+  ];
   var NAMES = {
     "achillies-1-fr.html": "Achilles 1",
     "achillies-2.html": "Achilles 2",
@@ -1035,6 +1108,7 @@
     hideLoad();
     sel = null;
     exitMax();
+    closeSheet();
     layout();
     render();
   });
@@ -1123,6 +1197,47 @@
   document.getElementById("full").addEventListener("click", goFull);
   document.addEventListener("fullscreenchange", onFsChange);
   document.addEventListener("webkitfullscreenchange", onFsChange);
+
+  function applyTheme(id) {
+    var ok = false, i;
+    for (i = 0; i < THEMES.length; i++) if (THEMES[i][0] === id) ok = true;
+    if (!ok) id = "why";
+    document.documentElement.setAttribute("data-theme", id);
+    try { localStorage.setItem("whyRevivedTheme", id); } catch (e) {}
+    [].forEach.call(document.querySelectorAll("#themes button"), function (b) {
+      b.className = b.getAttribute("data-theme") === id ? "on" : "";
+    });
+  }
+  function openSheet(kind) {
+    document.getElementById("sheet").className = "on";
+    document.getElementById("sheetTitle").textContent = kind === "theme" ? "THEMES" : "UPDATE LOG";
+    document.getElementById("logPane").style.display = kind === "theme" ? "none" : "block";
+    document.getElementById("themePane").style.display = kind === "theme" ? "block" : "none";
+    document.getElementById("logBtn").className = kind === "log" ? "on" : "";
+    document.getElementById("themeBtn").className = kind === "theme" ? "on" : "";
+  }
+  function closeSheet() {
+    document.getElementById("sheet").className = "";
+    document.getElementById("logBtn").className = "";
+    document.getElementById("themeBtn").className = "";
+  }
+  document.getElementById("logPane").innerHTML = LOGS.map(function (row) {
+    return '<div class="log"><b>' + row[0] + "</b><p>" + row[1] + "</p></div>";
+  }).join("");
+  document.getElementById("themes").innerHTML = THEMES.map(function (row) {
+    return '<button type="button" data-theme="' + row[0] + '">' + row[1] + "</button>";
+  }).join("");
+  document.getElementById("themes").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-theme]");
+    if (b) applyTheme(b.getAttribute("data-theme"));
+  });
+  document.getElementById("logBtn").addEventListener("click", function () { openSheet("log"); });
+  document.getElementById("themeBtn").addEventListener("click", function () { openSheet("theme"); });
+  document.getElementById("sheetX").addEventListener("click", closeSheet);
+  document.getElementById("sheet").addEventListener("click", function (e) {
+    if (e.target === this) closeSheet();
+  });
+  try { applyTheme(localStorage.getItem("whyRevivedTheme") || "why"); } catch (e) { applyTheme("why"); }
 
   loadCache();
   render();
