@@ -174,7 +174,25 @@
     "mario-kart-ds.html": "Mario Kart DS",
     "mario-party-ds.html": "Mario Party DS",
     "animal-crossing-wild-world.html": "Animal Crossing: Wild World",
-    "seraph/thebindingofisaac": "The Binding of Isaac"
+    "seraph/thebindingofisaac": "The Binding of Isaac",
+    "seraph/fancypantsadventure": "Fancy Pants Adventure",
+    "seraph/fancypantsadventure2": "Fancy Pants Adventure 2",
+    "seraph/fancypantsadventure3": "Fancy Pants Adventure 3",
+    "seraph/themehotel": "Theme Hotel",
+    "seraph/breakingthebank": "Breaking the Bank",
+    "seraph/escapingtheprison": "Escaping the Prison",
+    "seraph/stealingthediamond": "Stealing the Diamond",
+    "seraph/infiltratingtheairship": "Infiltrating the Airship",
+    "seraph/fleeingthecomplex": "Fleeing the Complex",
+    "seraph/learntofly": "Learn to Fly",
+    "seraph/learntofly2": "Learn to Fly 2",
+    "seraph/learntofly3": "Learn to Fly 3",
+    "seraph/worldshardestgame": "World's Hardest Game",
+    "seraph/thisistheonlylevel": "This Is the Only Level",
+    "seraph/electricman2": "Electric Man 2",
+    "seraph/linerider": "Line Rider",
+    "seraph/chibiknight": "Chibi Knight",
+    "seraph/supermarioflash": "Super Mario Flash"
   };
   var SEED = [
     ["achillies-1-fr.html", "flash"],
@@ -250,6 +268,23 @@
   var tab = "all";
   var sel = null;
   var query = "";
+  var webgl = (function () {
+    try {
+      var c = document.createElement("canvas");
+      var gl2 = c.getContext("webgl2");
+      if (gl2) {
+        gl2.getParameter(gl2.VERSION);
+        return { ok: true, level: 2 };
+      }
+      var gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+      if (gl) {
+        gl.getParameter(gl.VERSION);
+        return { ok: true, level: 1 };
+      }
+    } catch (e) {}
+    return { ok: false, level: 0 };
+  })();
+  var ruffleRenderer = webgl.level >= 2 ? "wgpu-webgl" : (webgl.level === 1 ? "webgl" : "canvas");
   var framed = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();
   var bootGame = (function () {
     var blob = String(location.hash || "") + "&" + String(location.search || "");
@@ -332,7 +367,7 @@
   function folderSite(file) {
     var p = String(file || "");
     if (!p) return true;
-    if (/ragdoll-archers|riddle-school-5|(^|\/)fnaf$|(^|\/)half-?life|thebindingofisaac|binding-?of-?isaac/i.test(p)) return false;
+    if (/ragdoll-archers|riddle-school-5|(^|\/)fnaf$|(^|\/)half-?life|thebindingofisaac|binding-?of-?isaac|fancypants|themehotel|escapingtheprison|stealingthediamond|infiltratingtheairship|fleeingthecomplex|breakingthebank|learntofly|worldshardestgame|thisistheonlylevel|electricman|linerider|chibiknight|supermarioflash|supersmashflash/i.test(p)) return false;
     if (p.indexOf("/") !== -1) return true;
     if (/^seraph\//i.test(p)) return true;
     return false;
@@ -347,6 +382,30 @@
   }
 
   SEED.forEach(function (row) { add(row[0], row[1], row[2]); });
+  if (webgl.level >= 2) {
+    [
+      ["seraph/fancypantsadventure", "fancypantsadventure.swf"],
+      ["seraph/fancypantsadventure2", "fancy-pants-adventure2.swf"],
+      ["seraph/fancypantsadventure3", "FPAWorld3.swf"],
+      ["seraph/themehotel", "themehotel.swf"],
+      ["seraph/breakingthebank", "breaking-the-bank.swf"],
+      ["seraph/escapingtheprison", "escapingtheprison.swf"],
+      ["seraph/stealingthediamond", "stealingthediamond.swf"],
+      ["seraph/infiltratingtheairship", "infiltratingtheairship.swf"],
+      ["seraph/fleeingthecomplex", "5.swf"],
+      ["seraph/learntofly", "ltf.swf"],
+      ["seraph/learntofly2", "learn-to-fly-2.swf"],
+      ["seraph/learntofly3", "learn-to-fly-3.swf"],
+      ["seraph/worldshardestgame", "whg.swf"],
+      ["seraph/thisistheonlylevel", "thisistheonlylevel.swf"],
+      ["seraph/electricman2", "electric-man-2.swf"],
+      ["seraph/linerider", "line-rider.swf"],
+      ["seraph/chibiknight", "chibiknight.swf"],
+      ["seraph/supermarioflash", "super-mario-flash.swf"]
+    ].forEach(function (row) {
+      add(row[0], "flash", CDN + SERAPH + "games/" + row[0].slice(7) + "/" + row[1]);
+    });
+  }
 
   function kindLabel(kind) {
     if (kind === "nds") return "Nintendo DS";
@@ -377,7 +436,8 @@
       else if (games[k].kind === "nds") dsN++;
       else webN++;
     }
-    document.getElementById("stat").textContent = flashN + " ruffle · " + dsN + " ds · " + webN + " html";
+    document.getElementById("stat").textContent = flashN + " ruffle · " + dsN + " ds · " + webN + " html · " +
+      (webgl.level >= 2 ? "webgl2" : (webgl.level === 1 ? "webgl" : "no webgl"));
     document.getElementById("list").innerHTML = rows.map(function (g) {
       return '<button type="button" class="g' + (sel === g.file ? " sel" : "") + '" data-file="' + g.file.replace(/"/g, "") + '">' +
         "<b>" + g.name.replace(/</g, "") + "</b><i>" + kindLabel(g.kind) + "</i></button>";
@@ -580,6 +640,7 @@
       letterbox: "on",
       backgroundColor: "#000000",
       publicPath: RUFFLE_DIR,
+      preferredRenderer: ruffleRenderer,
       quality: "high",
       scale: "showAll",
       forceScale: true,
@@ -599,6 +660,7 @@
       letterbox: "on",
       backgroundColor: "#000000",
       publicPath: RUFFLE_DIR,
+      preferredRenderer: ruffleRenderer,
       quality: "high",
       scale: "showAll",
       forceScale: true,
