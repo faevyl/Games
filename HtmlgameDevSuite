@@ -1,0 +1,1869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Html Dev Suite</title>
+<!--
+  One file. Same game list as Why Revived.
+  RAW = the html source. PLAY = run the game. RUN = play whatever is in the editor.
+-->
+<style>
+  :root, [data-theme="why"] {
+    --bg: #0c1014; --fg: #e8dcc8; --bar: #14181e; --line: #3a3226; --title: #f0e0c0;
+    --btn: #1a1814; --btn-fg: #c8b490; --accent: #c8a060; --muted: #7a6a52;
+    --side: #101418; --card: #171410; --card-line: #2a241c; --hover: #d8c4a0;
+  }
+  [data-theme="void"] {
+    --bg: #08060e; --fg: #ddd0f0; --bar: #120e1a; --line: #3a2a52; --title: #efe6ff;
+    --btn: #16101f; --btn-fg: #b8a0d8; --accent: #9a70e0; --muted: #7a6a92;
+    --side: #0c0a14; --card: #14101c; --card-line: #2a2038; --hover: #d0c0ec;
+  }
+  [data-theme="arcade"] {
+    --bg: #12080a; --fg: #f0d4c8; --bar: #1c1012; --line: #5a2830; --title: #ffe8dc;
+    --btn: #221014; --btn-fg: #e09080; --accent: #e05040; --muted: #8a6058;
+    --side: #140c0e; --card: #1c1012; --card-line: #3a2024; --hover: #f0c4b8;
+  }
+  [data-theme="moss"] {
+    --bg: #0c1410; --fg: #d4e4cc; --bar: #101814; --line: #2a4a32; --title: #e8f4dc;
+    --btn: #121a14; --btn-fg: #90b888; --accent: #6aaa60; --muted: #62805a;
+    --side: #0c1410; --card: #121a14; --card-line: #243828; --hover: #c8dcb8;
+  }
+  [data-theme="ice"] {
+    --bg: #0a1018; --fg: #d0dce8; --bar: #101820; --line: #2a4058; --title: #e8f0f8;
+    --btn: #121820; --btn-fg: #90b0c8; --accent: #68a0d0; --muted: #6a8098;
+    --side: #0c1218; --card: #121820; --card-line: #243040; --hover: #c8d8e8;
+  }
+  [data-theme="paper"] {
+    --bg: #e8dcc8; --fg: #2a241c; --bar: #f0e6d4; --line: #c8b490; --title: #1a1410;
+    --btn: #f4ead8; --btn-fg: #5a4030; --accent: #8a5030; --muted: #7a6a52;
+    --side: #efe4d2; --card: #f6ecda; --card-line: #d8c4a0; --hover: #3a3020;
+  }
+  [data-theme="lab"] {
+    --bg: #0b1014; --fg: #c8d8c0; --bar: #10161c; --line: #2a3a32; --title: #d8f0cc;
+    --btn: #141c18; --btn-fg: #8ec8a0; --accent: #5ad08a; --muted: #6a8070;
+    --side: #0c1210; --card: #121a16; --card-line: #24342c; --hover: #c8e8d0;
+  }
+  html, body { margin: 0; width: 100%; height: 100%; min-height: 100%; background: var(--bg); color: var(--fg); font-family: Georgia, serif; }
+  body { display: flex; flex-direction: column; overflow: hidden; }
+  #bar {
+    flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    padding: 10px 12px; background: var(--bar); border-bottom: 1px solid var(--line);
+  }
+  #bar h1 { margin: 0 8px 0 0; font-size: 13px; font-weight: 400; letter-spacing: 1px; color: var(--title); }
+  #bar input {
+    flex: 1 1 160px; min-width: 120px; background: var(--btn); color: var(--title);
+    border: 1px solid var(--line); padding: 6px 8px; font: 13px Georgia, serif;
+  }
+  #bar button, #tabs button, #themes button {
+    background: var(--btn); color: var(--btn-fg); border: 1px solid var(--line);
+    font: 12px Georgia, serif; padding: 6px 10px; cursor: pointer;
+  }
+  #bar button.on, #tabs button.on, #themes button.on { background: var(--card); color: var(--title); border-color: var(--accent); }
+  #stat { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  #main { flex: 1 1 auto; display: flex; min-height: 240px; height: 100%; }
+  #side {
+    width: 280px; max-width: 42%; overflow: auto; background: var(--side);
+    border-right: 1px solid var(--line); flex: 0 0 auto;
+  }
+  #tools { position: sticky; top: 0; z-index: 1; background: var(--side); padding: 8px 8px 4px; }
+  #tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+  #q {
+    display: block; width: 100%; box-sizing: border-box; background: var(--btn); color: var(--title);
+    border: 1px solid var(--line); padding: 8px 10px; font: 13px Georgia, serif;
+  }
+  #list { padding: 0 8px 12px; }
+  .g {
+    display: block; width: 100%; text-align: left; margin: 0 0 4px;
+    background: var(--card); color: var(--hover); border: 1px solid var(--card-line);
+    font: 13px Georgia, serif; padding: 8px 10px; cursor: pointer;
+  }
+  .g:hover, .g.sel { border-color: var(--accent); color: var(--title); }
+  .g b { display: block; font-weight: 400; color: var(--title); }
+  .g i { font-style: normal; font-size: 11px; color: var(--muted); }
+  #play { flex: 1 1 auto; position: relative; background: #000; min-width: 280px; min-height: 240px; }
+  #play iframe {
+    position: absolute; inset: 0; width: 100%; height: 100%; min-width: 280px; min-height: 240px;
+    border: 0; background: #000; display: block;
+  }
+  body.playing #play { min-width: 320px; }
+  #codeWrap {
+    display: none; position: absolute; inset: 0; flex-direction: column;
+    background: #0a0e10; min-width: 280px; min-height: 240px; z-index: 2;
+  }
+  body.view-raw #codeWrap { display: flex; }
+  body.view-raw #frame { visibility: hidden; }
+  #codeMeta, #codeBar {
+    flex: 0 0 auto; padding: 6px 10px; font: 11px Consolas, "Cascadia Mono", monospace;
+    color: var(--muted); border-bottom: 1px solid var(--line);
+    background: var(--bar); word-break: break-all;
+  }
+  #codeBar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  #codeBar button { font: 11px Consolas, monospace; padding: 4px 8px; }
+  #codeBar span { margin-left: auto; font-size: 10px; color: var(--muted); }
+  #codeEdit { flex: 1 1 auto; position: relative; min-height: 0; }
+  #codeHi, #code {
+    position: absolute; inset: 0; width: 100%; height: 100%; box-sizing: border-box;
+    margin: 0; border: 0; padding: 10px 12px; resize: none; outline: none;
+    font: 12px/1.45 Consolas, "Cascadia Mono", monospace; tab-size: 2;
+    white-space: pre; overflow: auto; word-wrap: normal;
+  }
+  #codeHi {
+    pointer-events: none; z-index: 0; color: #8fa08a;
+    background: #0a0e10;
+  }
+  #codeHi { color: #8fa08a; }
+  #codeHi .tag { color: #7ec8e8; }
+  #codeHi .attr { color: #d4c07a; }
+  #codeHi .str { color: #c9a0e8; }
+  #codeHi .cmt { color: #5a7060; font-style: italic; }
+  #codeHi .key { color: #e09070; }
+  #codeHi .num { color: #80d0a8; }
+  #codeHi .sel { color: #b8d080; }
+  #code {
+    z-index: 1; background: transparent; color: transparent; caret-color: #d4e8cc;
+  }
+  #suggest {
+    display: none; position: absolute; z-index: 14; max-height: 240px; overflow: auto;
+    min-width: 240px; max-width: min(420px, 90%); background: var(--card);
+    border: 1px solid var(--accent); box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  }
+  #suggest.on { display: block; }
+  #suggest button {
+    display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--card-line);
+    background: transparent; color: var(--title); font: 12px Consolas, monospace;
+    padding: 6px 10px; cursor: pointer;
+  }
+  #suggest button:last-child { border-bottom: 0; }
+  #suggest button.on, #suggest button:hover { background: var(--btn); color: var(--accent); }
+  #suggest button i { font-style: normal; float: right; color: var(--muted); font-size: 10px; letter-spacing: 1px; }
+  #empty {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: var(--muted); text-align: center; padding: 24px; pointer-events: none;
+  }
+  #empty.hide { display: none; }
+  #load {
+    position: absolute; inset: 0; z-index: 8; display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    background: var(--bg); color: var(--title); text-align: center; padding: 24px;
+  }
+  #load.on { display: flex; }
+  #spin {
+    width: 26px; height: 26px; margin-bottom: 14px;
+    border: 2px solid var(--line); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #load b { display: block; font-weight: 400; letter-spacing: 3px; font-size: 13px; color: var(--accent); margin-bottom: 8px; }
+  #load p { margin: 0; color: var(--muted); font: 13px Georgia, serif; }
+  #note {
+    position: fixed; right: 16px; bottom: 16px; z-index: 50; display: none;
+    width: 320px; max-width: calc(100% - 24px); padding: 12px 32px 12px 14px;
+    background: var(--card); color: var(--title); border: 1px solid var(--accent);
+    font: 13px/1.4 Georgia, serif;
+  }
+  #note.on { display: block; }
+  #note b { display: block; font-weight: 400; letter-spacing: 1px; color: var(--btn-fg); font-size: 11px; margin-bottom: 4px; }
+  #note p { margin: 0; color: var(--title); }
+  #note .x, #sheetX {
+    position: absolute; top: 6px; right: 8px; border: 0; background: transparent;
+    color: var(--muted); font: 16px Georgia, serif; cursor: pointer; padding: 2px 6px;
+  }
+  #sheet {
+    display: none; position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.55);
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  #sheet.on { display: flex; }
+  #sheetBox {
+    position: relative; width: 420px; max-width: 100%; max-height: min(70vh, 520px);
+    overflow: auto; background: var(--bar); color: var(--fg); border: 1px solid var(--accent);
+    padding: 16px 16px 12px;
+  }
+  #sheetBox h2 { margin: 0 28px 12px 0; font-size: 13px; font-weight: 400; letter-spacing: 2px; color: var(--accent); }
+  .log { margin: 0 0 12px; padding: 0 0 10px; border-bottom: 1px solid var(--line); }
+  .log:last-child { border-bottom: 0; margin-bottom: 0; }
+  .log b { display: block; font-weight: 400; font-size: 11px; letter-spacing: 1px; color: var(--btn-fg); margin-bottom: 4px; }
+  .log p { margin: 0; font: 13px/1.45 Georgia, serif; color: var(--fg); }
+  #themes { display: flex; flex-wrap: wrap; gap: 6px; }
+  body.max #side, body.playing.tight #side { display: none; }
+  #play:fullscreen, #play:-webkit-full-screen,
+  html:fullscreen, html:-webkit-full-screen { width: 100%; height: 100%; background: #000; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <h1>GAME HTML DEV SUITE</h1>
+  <button type="button" id="back">LIST</button>
+  <button type="button" id="modeRaw">RAW</button>
+  <button type="button" id="modePlay" class="on">PLAY</button>
+  <button type="button" id="runBtn">RUN</button>
+  <button type="button" id="copyBtn">COPY</button>
+  <button type="button" id="full">FULL</button>
+  <button type="button" id="logBtn">HELP</button>
+  <button type="button" id="themeBtn">THEME</button>
+  <span id="stat">loading…</span>
+</div>
+<div id="main">
+  <div id="side">
+    <div id="tools">
+      <div id="tabs">
+        <button type="button" class="on" data-tab="all">ALL</button>
+        <button type="button" data-tab="flash">RUFFLE</button>
+        <button type="button" data-tab="nds">DS</button>
+        <button type="button" data-tab="web">HTML</button>
+      </div>
+      <input id="q" type="search" placeholder="Search games" autocomplete="off">
+      <input id="srcUrl" type="url" placeholder="Or paste a game html url" autocomplete="off" style="display:block;width:100%;box-sizing:border-box;margin-top:6px;background:var(--btn);color:var(--title);border:1px solid var(--line);padding:8px 10px;font:12px Consolas,monospace">
+      <button type="button" id="fetchBtn" style="width:100%;margin-top:6px">FETCH URL</button>
+    </div>
+    <div id="list"></div>
+  </div>
+  <div id="play">
+    <div id="empty">Pick a game. RAW edits the html with suggestions (Ctrl+Space). PLAY runs it. RUN plays the editor.</div>
+    <div id="codeWrap">
+      <div id="codeMeta">no source loaded</div>
+      <div id="codeBar">
+        <button type="button" class="on" data-lang="auto">AUTO</button>
+        <button type="button" data-lang="html">HTML</button>
+        <button type="button" data-lang="css">CSS</button>
+        <button type="button" data-lang="javascript">JS</button>
+        <span>Ctrl+Space · Tab to accept</span>
+      </div>
+      <div id="codeEdit">
+        <pre id="codeHi" aria-hidden="true"></pre>
+        <textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Game html shows up here. Type for suggestions, then RUN."></textarea>
+        <div id="suggest"></div>
+      </div>
+    </div>
+    <iframe id="frame" title="game" allow="autoplay; fullscreen; gamepad; clipboard-write; xr-spatial-tracking" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true"></iframe>
+    <div id="load" class="on">
+      <div id="spin"></div>
+      <b>GAME HTML DEV SUITE</b>
+      <p id="loadMsg">loading games…</p>
+    </div>
+  </div>
+</div>
+<div id="note">
+  <b>Game Html Dev Suite</b>
+  <p id="noteMsg">yk i cant load roblox, sorry...</p>
+  <button type="button" class="x" id="noteX" aria-label="close">×</button>
+</div>
+<div id="sheet">
+  <div id="sheetBox">
+    <button type="button" id="sheetX" aria-label="close">×</button>
+    <h2 id="sheetTitle">HELP</h2>
+    <div id="logPane"></div>
+    <div id="themePane" style="display:none">
+      <div id="themes"></div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var CDN = "https://cdn.jsdelivr.net/gh/";
+  var BUNNY = "https://jsdelivr.b-cdn.net/gh/";
+  var LITE = "Craf1ed/lite-assets@main/";
+  var SERAPH = "a456pur/seraph@ae2fcc6d6a9cd051654fcc0519080db1f79cf2a7/";
+  var RUFFLE = "https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.5.0/ruffle.js";
+  var RUFFLE_DIR = "https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.5.0/";
+  var EJS = CDN + "a456pur/seraph@81f551ca0aa8e3d6018d32d8ac5904ac9bc78f76/storage/emulatorjs/data";
+  var API = "https://api.github.com/repos/Craf1ed/lite-assets/contents/";
+  var THEMES = [
+    ["why", "Why"],
+    ["void", "Void"],
+    ["arcade", "Arcade"],
+    ["moss", "Moss"],
+    ["ice", "Ice"],
+    ["paper", "Paper"],
+    ["lab", "Lab"]
+  ];
+  var LOGS = [
+    ["raw", "RAW is the actual html of the game page. the editor highlights html/css/js and suggests tags, css props, and some javascript. Ctrl+Space opens suggestions, Tab accepts."],
+    ["play", "PLAY runs it the same way Why Revived does. RUN plays whatever is in the editor, edits included."],
+    ["paste", "not in the list? paste a game html url under search and hit FETCH URL."]
+  ];
+  var NAMES = {
+    "achillies-1-fr.html": "Achilles 1",
+    "achillies-2.html": "Achilles 2",
+    "dad-nm-e.html": "Dad n Me",
+    "meat-boy-flash.html": "Super Meat Boy (Flash)",
+    "portal-flash.html": "Portal (Flash)",
+    "ruffle.html": "Ruffle Player",
+    "60-seconds-burger-run.html": "60 Second Burger Run",
+    "cookie-clicker.html": "Cookie Clicker",
+    "granny.html": "Granny",
+    "granny-2-2.html": "Granny 2",
+    "riddle-school.html": "Riddle School",
+    "riddle-school-2.html": "Riddle School 2",
+    "riddle-school-3.html": "Riddle School 3",
+    "riddle-school-4.html": "Riddle School 4",
+    "riddle-school-5": "Riddle School 5",
+    "seraph/fnaf": "FNAF",
+    "halflife.html": "Half-Life",
+    "seraph/halflife": "Half-Life",
+    "seraph/half-life": "Half-Life",
+    "riddle-transfer.html": "Riddle Transfer",
+    "riddle-transfer-2.html": "Riddle Transfer 2",
+    "gun-mayhem.html": "Gun Mayhem",
+    "gun-mayhem-2.html": "Gun Mayhem 2",
+    "gun-mayhem-redux.html": "Gun Mayhem Redux",
+    "ragdoll-archers/index.html": "Ragdoll Archers",
+    "bad-parenting.html": "Bad Parenting",
+    "roblox.html": "Roblox",
+    "infinite-craft.html": "Nova Craft",
+    "drive-mad.html": "Drive Mad",
+    "escape-road.html": "Escape Road",
+    "pokemon-diamond.html": "Pokemon Diamond",
+    "pokemon-pearl.html": "Pokemon Pearl",
+    "super-mario-64-ds.html": "Super Mario 64 DS",
+    "mario-kart-ds.html": "Mario Kart DS",
+    "mario-party-ds.html": "Mario Party DS",
+    "animal-crossing-wild-world.html": "Animal Crossing: Wild World",
+    "seraph/thebindingofisaac": "The Binding of Isaac",
+    "binding-of-isacc-sheep-time.html": "The Binding of Isaac: Sheep Time",
+    "seraph/fancypantsadventure": "Fancy Pants Adventure",
+    "seraph/fancypantsadventure2": "Fancy Pants Adventure 2",
+    "seraph/fancypantsadventure3": "Fancy Pants Adventure 3",
+    "seraph/themehotel": "Theme Hotel",
+    "seraph/breakingthebank": "Breaking the Bank",
+    "seraph/escapingtheprison": "Escaping the Prison",
+    "seraph/stealingthediamond": "Stealing the Diamond",
+    "seraph/infiltratingtheairship": "Infiltrating the Airship",
+    "seraph/fleeingthecomplex": "Fleeing the Complex",
+    "seraph/learntofly": "Learn to Fly",
+    "seraph/learntofly2": "Learn to Fly 2",
+    "seraph/learntofly3": "Learn to Fly 3",
+    "seraph/worldshardestgame": "World's Hardest Game",
+    "seraph/thisistheonlylevel": "This Is the Only Level",
+    "seraph/electricman2": "Electric Man 2",
+    "seraph/linerider": "Line Rider",
+    "seraph/chibiknight": "Chibi Knight",
+    "seraph/supermarioflash": "Super Mario Flash"
+  };
+  var SEED = [
+    ["achillies-1-fr.html", "flash"],
+    ["achillies-2.html", "flash"],
+    ["60-seconds-burger-run.html", "flash"],
+    ["ruffle.html", "flash"],
+    ["happy-wheels.html", "flash"],
+    ["super-mario-63.html", "flash"],
+    ["meat-boy-flash.html", "flash"],
+    ["portal-flash.html", "flash"],
+    ["impossible-quiz.html", "flash"],
+    ["achievement-unlocked.html", "flash"],
+    ["achievement-unlocked-2.html", "flash"],
+    ["age-of-war.html", "flash"],
+    ["age-of-war-2.html", "flash"],
+    ["alien-hominid.html", "flash"],
+    ["bloons.html", "flash"],
+    ["bloons-2.html", "flash"],
+    ["bloons-td-1.html", "flash"],
+    ["bloons-td-2.html", "flash"],
+    ["bloons-td-3.html", "flash"],
+    ["bloons-td-4.html", "flash"],
+    ["bloons-td-5.html", "flash"],
+    ["cactus-mccoy.html", "flash"],
+    ["cactus-mccoy-2.html", "flash"],
+    ["dad-nm-e.html", "flash"],
+    ["defend-your-castle.html", "flash"],
+    ["riddle-school.html", "flash"],
+    ["riddle-school-2.html", "flash"],
+    ["riddle-school-3.html", "flash"],
+    ["riddle-school-4.html", "flash"],
+    ["riddle-school-5", "flash", CDN + SERAPH + "games/riddleschool/riddleschool5/index.html"],
+    ["riddle-transfer.html", "flash"],
+    ["riddle-transfer-2.html", "flash"],
+    ["seraph/breakingthebank", "flash", CDN + SERAPH + "games/breakingthebank/breaking-the-bank.swf"],
+    ["seraph/escapingtheprison", "flash", CDN + SERAPH + "games/escapingtheprison/escapingtheprison.swf"],
+    ["seraph/stealingthediamond", "flash", CDN + SERAPH + "games/stealingthediamond/stealingthediamond.swf"],
+    ["seraph/infiltratingtheairship", "flash", CDN + SERAPH + "games/infiltratingtheairship/infiltratingtheairship.swf"],
+    ["seraph/fleeingthecomplex", "flash", CDN + SERAPH + "games/fleeingthecomplex/5.swf"],
+    ["seraph/themehotel", "flash", CDN + SERAPH + "games/themehotel/themehotel.swf"],
+    ["seraph/learntofly", "flash", CDN + SERAPH + "games/learntofly/ltf.swf"],
+    ["seraph/learntofly2", "flash", CDN + SERAPH + "games/learntofly2/learn-to-fly-2.swf"],
+    ["seraph/learntofly3", "flash", CDN + SERAPH + "games/learntofly3/learn-to-fly-3.swf"],
+    ["seraph/worldshardestgame", "flash", CDN + SERAPH + "games/worldshardestgame/whg.swf"],
+    ["seraph/thisistheonlylevel", "flash", CDN + SERAPH + "games/thisistheonlylevel/thisistheonlylevel.swf"],
+    ["seraph/electricman2", "flash", CDN + SERAPH + "games/electricman2/electric-man-2.swf"],
+    ["seraph/linerider", "flash", CDN + SERAPH + "games/linerider/line-rider.swf"],
+    ["seraph/chibiknight", "flash", CDN + SERAPH + "games/chibiknight/chibiknight.swf"],
+    ["seraph/supermarioflash", "flash", CDN + SERAPH + "games/supermarioflash/super-mario-flash.swf"],
+    ["gun-mayhem.html", "flash"],
+    ["gun-mayhem-2.html", "web"],
+    ["gun-mayhem-redux.html", "flash"],
+    ["ragdoll-archers/index.html", "web", CDN + LITE + "ragdoll-archers/index.html"],
+    ["bad-parenting.html", "web"],
+    ["roblox.html", "web"],
+    ["cookie-clicker.html", "web"],
+    ["granny.html", "web"],
+    ["granny-2-2.html", "web"],
+    ["infinite-craft.html", "web"],
+    ["drive-mad.html", "web"],
+    ["escape-road.html", "web"],
+    ["seraph/fnaf", "web", CDN + SERAPH + "games/fnaf/index.html"],
+    ["halflife.html", "web"],
+    ["mario-kart-ds.html", "nds"],
+    ["mario-party-ds.html", "nds"],
+    ["super-mario-64-ds.html", "nds"],
+    ["animal-crossing-wild-world.html", "nds"],
+    ["cooking-mama-2.html", "nds"],
+    ["cooking-mama-3.html", "nds"],
+    ["pokemon-diamond.html", "nds", CDN + "bubbls/ugss@c1ee7c5c6ee36389455d85874293c1e35c569e37/Pokemon%20-%20Diamond%20Version%20(USA)%20(Rev%205)/Pokemon%20-%20Diamond%20Version%20(USA)%20(Rev%205).nds"],
+    ["pokemon-pearl.html", "nds", CDN + "bubbls/ugss@adb3ef7b1ed9dcefb25f4ea6e2ad1aa30a27c599/Pokemon%20-%20Pearl%20Version%20(USA)%20(Rev%205)/Pokemon%20-%20Pearl%20Version%20(USA)%20(Rev%205).nds"]
+  ];
+  var BLOCK_FILE = {
+    "cooking-mama.html": 1,
+    "10-minutes-till-dawn.html": 1,
+    "granny-2.html": 1,
+    "achievement-unlocked-3.html": 1,
+    "little-alchemy-2": 1,
+    "little-alchemy-2/index.html": 1,
+    "infinitecraft": 1,
+    "seraph/infinitecraft": 1,
+    "seraph/halflife": 1,
+    "seraph/half-life": 1,
+    "pokemon-mone-vol-ve-ds-fd-gs-dfs.html": 1,
+    "pokemon-moneme-ra-lds-ea-glass.html": 1,
+    "pokes-cor-che-dsi-lv-er.html": 1,
+    "fancy-pants-adventure.html": 1,
+    "fancy-pants-adventure-2.html": 1,
+    "fancy-pants-adventure-3.html": 1,
+    "learn-to-fly.html": 1,
+    "learn-to-fly-2.html": 1,
+    "learn-to-fly-3.html": 1,
+    "electric-man-2.html": 1,
+    "chi-bik-night.html": 1,
+    "line-rider.html": 1,
+    "bloons-pp-1.html": 1,
+    "bloons-pp-2.html": 1,
+    "bloons-pp-3.html": 1,
+    "bloons-pp-4.html": 1,
+    "bloons-pp-5.html": 1
+  };
+  // Only SWFs that stay blank without wgpu (BitmapData.draw). Everything else is always listed.
+  var GPU_SWF = [
+    ["seraph/thebindingofisaac", "the_binding_of_isaac.swf"],
+    ["binding-of-isacc-sheep-time.html", "https://cdn.jsdelivr.net/gh/RobiFet/CMinterview@a4017231eca9f2173ad7ec0e63b01e4786b4ad6b/web/src/BiWrath.swf"],
+    ["seraph/fancypantsadventure", "fancypantsadventure.swf"],
+    ["seraph/fancypantsadventure2", "fancy-pants-adventure2.swf"],
+    ["seraph/fancypantsadventure3", "FPAWorld3.swf"]
+  ];
+  var GPU_FILE = {};
+  GPU_SWF.forEach(function (row) { GPU_FILE[row[0]] = 1; });
+  var games = {};
+  var tab = "all";
+  var sel = null;
+  var query = "";
+  var viewMode = "play";
+  var lastUrl = "";
+  var lastBase = "";
+  var editLang = "auto";
+  var suggestItems = [];
+  var suggestI = 0;
+  var paintTimer = 0;
+  var webgl = (function () {
+    try {
+      var c = document.createElement("canvas");
+      var gl2 = c.getContext("webgl2");
+      if (gl2) {
+        gl2.getParameter(gl2.VERSION);
+        return { ok: true, level: 2 };
+      }
+      var gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+      if (gl) {
+        gl.getParameter(gl.VERSION);
+        return { ok: true, level: 1 };
+      }
+    } catch (e) {}
+    return { ok: false, level: 0 };
+  })();
+  var hasWebgpu = (function () {
+    try { return !!(navigator.gpu && navigator.gpu.requestAdapter); } catch (e) { return false; }
+  })();
+  // Canvas cannot draw BitmapData (Isaac walls, Fancy Pants rooms). Prefer WebGPU, then wgpu-webgl.
+  // Never pick canvas as the preferred backend.
+  var ruffleRenderer = hasWebgpu ? "webgpu" : "wgpu-webgl";
+  var gpuPlay = webgl.level >= 2 || hasWebgpu;
+  var framed = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();
+  var bootGame = (function () {
+    var blob = String(location.hash || "") + "&" + String(location.search || "");
+    var m = blob.match(/[#&?]play=([^&]*)/);
+    if (!m) return "";
+    try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; }
+  })();
+
+  function titleOf(file) {
+    if (NAMES[file]) return NAMES[file];
+    return file.replace(/^seraph\//, "").replace(/\/index\.html$/i, "").replace(/\.html$/i, "").replace(/-/g, " ").replace(/\b\w/g, function (c) {
+      return c.toUpperCase();
+    });
+  }
+
+  function parseRepo(url) {
+    url = String(url || "").replace(/&amp;/g, "&");
+    var m = url.match(/^https?:\/\/(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)\/gh\/([^\/]+)\/([^@\/]+)@([^\/]+)\/(.+)$/i);
+    if (m) return { user: m[1], repo: m[2], ref: m[3], path: m[4] };
+    m = url.match(/^https?:\/\/(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)\/gh\/([^\/]+)\/([^@\/]+)\/(.+)$/i);
+    if (m) return { user: m[1], repo: m[2], ref: "main", path: m[3] };
+    m = url.match(/^https?:\/\/raw\.githubusercontent\.com\/([^\/]+)\/([^\/]+)\/(?:refs\/heads\/)?([^\/]+)\/(.+)$/i);
+    if (m) return { user: m[1], repo: m[2], ref: m[3], path: m[4] };
+    m = url.match(/^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/(?:raw|blob)\/([^\/]+)\/(.+)$/i);
+    if (m) return { user: m[1], repo: m[2], ref: m[3], path: m[4] };
+    m = url.match(/^https?:\/\/(?:rawcdn\.|cdn\.)?githack\.com\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)$/i);
+    if (m) return { user: m[1], repo: m[2], ref: m[3], path: m[4] };
+    return null;
+  }
+
+  function githubRaw(p) {
+    return "https://raw.githubusercontent.com/" + p.user + "/" + p.repo + "/" + p.ref + "/" + p.path;
+  }
+
+  function cdnUrl(p) {
+    return CDN + p.user + "/" + p.repo + "@" + p.ref + "/" + p.path;
+  }
+
+  function bunnyUrl(p) {
+    return BUNNY + p.user + "/" + p.repo + "@" + p.ref + "/" + p.path;
+  }
+
+  // githack is blocked. GitHub is not. jsDelivr 403s genizy (Nova Craft / some Unity).
+  function cleanUrl(url) {
+    url = String(url || "").replace(/&amp;/g, "&");
+    if (/githack\.com/i.test(url) || /(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)\/gh\/genizy\//i.test(url)) {
+      var p = parseRepo(url);
+      if (p) return githubRaw(p);
+    }
+    return url;
+  }
+
+  function mirrors(url) {
+    var cleaned = cleanUrl(url);
+    var p = parseRepo(cleaned);
+    var out = [];
+    function push(u) {
+      if (u && !/githack\.com/i.test(u) && out.indexOf(u) === -1) out.push(u);
+    }
+    if (p) {
+      if (/genizy/i.test(p.user)) push(githubRaw(p));
+      else {
+        push(cdnUrl(p));
+        push(bunnyUrl(p));
+        push(githubRaw(p));
+      }
+    } else {
+      push(cleaned);
+    }
+    return out;
+  }
+
+  function destBlocked(u) {
+    var s = String(u || "");
+    try { s = decodeURIComponent(s.replace(/\+/g, " ")); } catch (e) {}
+    s = s.toLowerCase();
+    if (/10minutestilldawn|10 minutes till dawn/.test(s)) return true;
+    if (/cooking\s*mama/.test(s) && /\(usa\)\.zip|%20\(usa\)\.zip/.test(String(u).toLowerCase()) && !/mama\s*2|mama%202/.test(s)) return true;
+    if (/\/fnaf-2\b|\/fnaf-3\b|\/fnaf2\b|\/fnaf3\b/.test(s)) return true;
+    if (/achievement-unlocked-3\.swf|achievementunlocked3/.test(s)) return true;
+    if (/\binfinitecraft\b/.test(s) && !/infinite-craft\.html/.test(s)) return true;
+    return false;
+  }
+
+  function folderSite(file) {
+    var p = String(file || "");
+    if (!p) return true;
+    if (/ragdoll-archers|riddle-school-5|(^|\/)fnaf$|(^|\/)half-?life|thebindingofisaac|binding-?of-?isaac|fancypants|themehotel|escapingtheprison|stealingthediamond|infiltratingtheairship|fleeingthecomplex|breakingthebank|learntofly|worldshardestgame|thisistheonlylevel|electricman|linerider|chibiknight|supermarioflash|supersmashflash/i.test(p)) return false;
+    if (p.indexOf("/") !== -1) return true;
+    if (/^seraph\//i.test(p)) return true;
+    return false;
+  }
+
+  function normTitle(s) {
+    return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  }
+
+  function destFile(u) {
+    var s = String(u || "").split("?")[0].split("#")[0];
+    try { s = decodeURIComponent(s); } catch (e) {}
+    return s.split("/").pop().toLowerCase();
+  }
+
+  function add(file, kind, dest) {
+    if (!file || BLOCK_FILE[file] || BLOCK_FILE[file.replace(/\/index\.html$/i, "")] || games[file]) return;
+    if (!gpuPlay && GPU_FILE[file]) return;
+    if (folderSite(file)) return;
+    dest = dest ? cleanUrl(dest) : "";
+    if (dest && destBlocked(dest)) return;
+    var name = titleOf(file);
+    var nt = normTitle(name);
+    var df = destFile(dest);
+    var k, g;
+    for (k in games) {
+      g = games[k];
+      if (normTitle(g.name) === nt) return;
+      if (df && destFile(g.dest) === df && /\.(swf|nds|gba|zip)$/i.test(df)) return;
+    }
+    games[file] = { file: file, kind: kind, name: name, dest: dest };
+  }
+
+  SEED.forEach(function (row) { add(row[0], row[1], row[2]); });
+  if (gpuPlay) {
+    GPU_SWF.forEach(function (row) {
+      var dest = /^https?:/i.test(row[1]) ? row[1] : CDN + SERAPH + "games/" + row[0].slice(7) + "/" + row[1];
+      add(row[0], "flash", dest);
+    });
+  }
+
+  function kindLabel(kind) {
+    if (kind === "nds") return "Nintendo DS";
+    if (kind === "web") return "HTML5";
+    return "Ruffle Flash";
+  }
+
+  function listGames() {
+    var rows = Object.keys(games).map(function (k) { return games[k]; });
+    rows.sort(function (a, b) {
+      if (a.file.indexOf("achillies") === 0 && b.file.indexOf("achillies") !== 0) return -1;
+      if (b.file.indexOf("achillies") === 0 && a.file.indexOf("achillies") !== 0) return 1;
+      return a.name.localeCompare(b.name);
+    });
+    var q = query.trim().toLowerCase();
+    return rows.filter(function (g) {
+      if (tab !== "all" && g.kind !== tab) return false;
+      if (!q) return true;
+      return (g.name + " " + g.file + " " + g.kind).toLowerCase().indexOf(q) !== -1;
+    });
+  }
+
+  function render() {
+    var rows = listGames();
+    var flashN = 0, dsN = 0, webN = 0, k;
+    for (k in games) {
+      if (games[k].kind === "flash") flashN++;
+      else if (games[k].kind === "nds") dsN++;
+      else webN++;
+    }
+    document.getElementById("stat").textContent = flashN + " ruffle · " + dsN + " ds · " + webN + " html · " +
+      (hasWebgpu ? "webgpu" : (webgl.level >= 2 ? "webgl2" : (webgl.level === 1 ? "webgl" : "no gpu")));
+    document.getElementById("list").innerHTML = rows.map(function (g) {
+      return '<button type="button" class="g' + (sel === g.file ? " sel" : "") + '" data-file="' + g.file.replace(/"/g, "") + '">' +
+        "<b>" + g.name.replace(/</g, "") + "</b><i>" + kindLabel(g.kind) + "</i></button>";
+    }).join("") || '<div style="padding:12px;color:#7a6a52">No matches.</div>';
+  }
+
+  function extractDest(text) {
+    var m = text.match(/EJS_gameUrl\s*=\s*["']([^"']+)["']/i);
+    if (m) return { kind: "nds", url: m[1] };
+    m = text.match(/swfUrl\s*:\s*["']([^"']+)["']/i);
+    if (m) return { kind: "flash", url: m[1] };
+    m = text.match(/<(?:ruffle-)?object[^>]*data=["']([^"']+\.swf)["']/i) ||
+      text.match(/<(?:ruffle-)?embed[^>]*src=["']([^"']+\.swf)["']/i) ||
+      text.match(/<param[^>]*name=["']movie["'][^>]*value=["']([^"']+\.swf)["']/i) ||
+      text.match(/<embed[^>]*src=["']([^"']+\.swf)["']/i) ||
+      text.match(/value=["'](https?:\/\/[^"']+\.swf)["']/i);
+    if (m) return { kind: "flash", url: m[1] };
+    m = text.match(/player\.load\(\s*["']([^"']+\.swf)["']/i);
+    if (m) return { kind: "flash", url: m[1] };
+    m = text.match(/UnityLoader\.instantiate\s*\([^,]+,\s*["']([^"']+)["']/i);
+    if (m) return { kind: "web", url: m[1] };
+    m = text.match(/<iframe[^>]*src=["']([^"']+)["']/i);
+    if (m) return { kind: "web", url: m[1] };
+    m = text.match(/buildUrl\s*=\s*["'](https?:\/\/[^"']+)["']/i);
+    if (m) return { kind: "web", url: m[1] };
+    return null;
+  }
+
+  function innerHtml(text) {
+    var m = text.match(/<!\[CDATA\[([\s\S]*?)\]\]>/i);
+    if (m) return m[1];
+    var start = text.search(/<html[\s>]/i);
+    if (start >= 0) {
+      var html = text.slice(start);
+      return html.replace(/\]\]>\s*<\/Content>[\s\S]*$/i, "");
+    }
+    return text;
+  }
+
+  function dirOf(url) {
+    return String(url || "").replace(/[#?].*$/, "").replace(/[^/]+$/, "");
+  }
+
+  function rewriteRootUrls(html, base) {
+    if (!base) return html;
+    var root = String(base).replace(/\/?$/, "/");
+    html = html.replace(/(\s(?:src|href|poster)=["'])\/(?!\/)/gi, "$1" + root);
+    html = html.replace(/(url\(\s*['"]?)\/(?!\/)/gi, "$1" + root);
+    return html;
+  }
+
+  function pathPatcher(base) {
+    var root = String(base || "").replace(/\/?$/, "");
+    if (!root) return "";
+    return "<script>(function(B){function f(u){if(typeof u!=='string')return u;if(u.charAt(0)==='/'&&u.charAt(1)!=='/')return B+u;return u;}" +
+      "var F=window.fetch;if(F)window.fetch=function(i,n){if(typeof i==='string')i=f(i);else if(i&&typeof Request==='function'&&i instanceof Request)i=new Request(f(i.url),i);return F.call(this,i,n);};" +
+      "var X=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){if(typeof u==='string')arguments[1]=f(u);return X.apply(this,arguments);};" +
+      "function hook(proto,prop){try{var d=Object.getOwnPropertyDescriptor(proto,prop);if(!d||!d.set)return;Object.defineProperty(proto,prop,{configurable:true,enumerable:d.enumerable,get:d.get,set:function(v){d.set.call(this,f(v));}});}catch(e){}}" +
+      "if(window.HTMLImageElement)hook(HTMLImageElement.prototype,'src');" +
+      "if(window.HTMLScriptElement)hook(HTMLScriptElement.prototype,'src');" +
+      "if(window.HTMLLinkElement)hook(HTMLLinkElement.prototype,'href');" +
+      "var SA=Element.prototype.setAttribute;Element.prototype.setAttribute=function(n,v){if((n==='src'||n==='href'||n==='poster')&&typeof v==='string')v=f(v);return SA.call(this,n,v);};" +
+      "})(" + JSON.stringify(root) + ");<\/script>";
+  }
+
+  function fixGameHtml(html) {
+    html = String(html || "");
+    html = html.replace(/\s*type=(["'])[0-9a-f]{6,}-text\/javascript\1/gi, "");
+    html = html.replace(/<script[^>]*\beruda\b[^>]*><\/script>/gi, "");
+    html = html.replace(/<script[^>]*>\s*eruda\.init\(\)\s*<\/script>/gi, "");
+    html = html.replace(/<script[^>]*src=["']\/vs\/[^"']+["'][^>]*>\s*<\/script>/gi, "");
+    return html;
+  }
+
+  function ownCdnBase(html) {
+    var m = String(html || "").match(/<base[^>]*href=["'](https?:\/\/(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)[^"']+)["']/i);
+    if (m && /genizy/i.test(m[1])) return "";
+    return m ? m[1] : "";
+  }
+
+  function cdnFrameOk(url) {
+    return /(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)/i.test(url || "") && !/\/gh\/genizy\//i.test(url || "");
+  }
+
+  function needsMimePatch(html, txt, url) {
+    var blob = String(html || "") + " " + String(txt || "") + " " + String(url || "");
+    return /raw\.githubusercontent\.com/i.test(blob) || /\/gh\/genizy\//i.test(blob) || /[0-9a-f]{8,}-text\/javascript/i.test(blob);
+  }
+
+  function needsLiveOrigin(html) {
+    return /createUnityInstance|unity-canvas|UnityLoader|\.unityweb|poki-sdk|emscripten|WebAssembly|unity-container|unity-loading-bar|loading-cover/i.test(html || "");
+  }
+
+  function githubMime() {
+    return "<script>(function(){" +
+      "function mime(u){u=String(u||'').split('?')[0].split('#')[0];" +
+      "if(/\\.wasm$/i.test(u))return'application/wasm';" +
+      "if(/\\.m?js$/i.test(u))return'application/javascript';" +
+      "if(/\\.json$/i.test(u))return'application/json';" +
+      "if(/\\.css$/i.test(u))return'text/css';" +
+      "if(/\\.(data|mem|bundle|unityweb)$/i.test(u))return'application/octet-stream';return'';}" +
+      "function abs(u){try{return new URL(String(u||''),document.baseURI).href;}catch(e){return String(u||'');}}" +
+      "function gh(u){return /raw\\.githubusercontent\\.com/i.test(u);}" +
+      "var F=window.fetch;" +
+      "window.fetch=function(i,n){var u=abs(typeof i==='string'?i:(i&&i.url)||'');return F.apply(this,arguments).then(function(r){var t=gh(u)&&mime(u);if(!t)return r;return r.arrayBuffer().then(function(b){return new Response(b,{status:r.status,statusText:r.statusText,headers:{'Content-Type':t}});});});};" +
+      "var XO=XMLHttpRequest.prototype.open;" +
+      "XMLHttpRequest.prototype.open=function(m,u){var a=abs(u),t=gh(a)&&mime(a);if(t){try{this.overrideMimeType(t);}catch(e){}}return XO.apply(this,arguments);};" +
+      "function hook(proto,prop){try{var d=Object.getOwnPropertyDescriptor(proto,prop);if(!d||!d.set)return;" +
+      "Object.defineProperty(proto,prop,{configurable:true,enumerable:d.enumerable,get:d.get,set:function(v){var el=this,a=abs(v),t=gh(a)&&mime(a);" +
+      "if(prop==='src'&&t){F(a).then(function(r){return r.arrayBuffer();}).then(function(b){d.set.call(el,URL.createObjectURL(new Blob([b],{type:t})));}).catch(function(){d.set.call(el,v);});return;}d.set.call(el,v);}});}catch(e){}}" +
+      "if(window.HTMLScriptElement)hook(HTMLScriptElement.prototype,'src');" +
+      "var SA=Element.prototype.setAttribute;" +
+      "Element.prototype.setAttribute=function(n,v){if((n==='src'||n==='href')&&typeof v==='string'){var a=abs(v),t=gh(a)&&mime(a);if(n==='src'&&t){var el=this;F(a).then(function(r){return r.arrayBuffer();}).then(function(b){SA.call(el,n,URL.createObjectURL(new Blob([b],{type:t})));}).catch(function(){SA.call(el,n,v);});return;}}return SA.apply(this,arguments);};" +
+      "})();<\/script>";
+  }
+
+  function bootGithubModules(html) {
+    html = String(html || "");
+    html = html.replace(/<script([^>]*)\btype=["']module["']([^>]*)><\/script>/gi, function (tag) {
+      var src = (tag.match(/\ssrc=["']([^"']+)["']/i) || [])[1];
+      if (!src || !/raw\.githubusercontent\.com/i.test(src)) return tag;
+      return "<script>(function(){var s=" + JSON.stringify(src) + ";fetch(s).then(function(r){return r.text()}).then(function(t){t=t.replace(/import\\.meta\\.url/g,JSON.stringify(s));var e=document.createElement('script');e.type='module';e.src=URL.createObjectURL(new Blob([t],{type:'application/javascript'}));document.head.appendChild(e)})})();<\/script>";
+    });
+    html = html.replace(/<link([^>]*rel=["']stylesheet["'][^>]*)>/gi, function (tag) {
+      var href = (tag.match(/\shref=["']([^"']+)["']/i) || [])[1];
+      if (!href || !/raw\.githubusercontent\.com/i.test(href)) return tag;
+      return "<script>(function(){var s=" + JSON.stringify(href) + ";fetch(s).then(function(r){return r.text()}).then(function(t){var b=s.replace(/[^/]+$/,'');t=t.replace(/url\\(\\s*(['\"]?)(?!\\/\\/|https?:|data:)/gi,'url($1'+b);var e=document.createElement('style');e.textContent=t;document.head.appendChild(e)})})();<\/script>";
+    });
+    return html;
+  }
+
+  function withBase(html, base) {
+    html = fixGameHtml(html);
+    html = html.replace(/https?:\/\/(?:rawcdn\.|cdn\.)?githack\.com\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^"'\s]+)/gi, function (_, a, b, c, d) {
+      return "https://raw.githubusercontent.com/" + a + "/" + b + "/" + c + "/" + d;
+    });
+    html = html.replace(/https?:\/\/(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)\/gh\/genizy\/[^"'\s]+/gi, function (u) {
+      return cleanUrl(u);
+    });
+    html = html.replace(/https?:\/\/unpkg\.com\/@ruffle-rs\/ruffle[^"']*/gi, RUFFLE);
+    html = html.replace(/https?:\/\/cdn\.jsdelivr\.net\/npm\/@ruffle-rs\/ruffle[^"']*/gi, RUFFLE);
+    html = html.replace(/(src\s*=\s*["'])[^"']*ruffle\/ruffle\.js["']/gi, "$1" + RUFFLE + '"');
+    html = html.replace(/(['"])\.\.\/\.\.\/\.\.\/storage\/ruffle\/ruffle\.js\1/gi, "$1" + RUFFLE + "$1");
+    if (ownCdnBase(html)) return html;
+    var gh = /raw\.githubusercontent\.com/i.test(html);
+    html = rewriteRootUrls(html, base);
+    var patch = "";
+    if (gh) patch = githubMime();
+    else if (base && !/^https?:\/\//i.test(base)) patch = pathPatcher(base);
+    if (base && !/<base[\s>]/i.test(html)) {
+      if (/<head[^>]*>/i.test(html)) html = html.replace(/<head([^>]*)>/i, "<head$1><base href=\"" + base + "\">" + patch);
+      else if (/<html[^>]*>/i.test(html)) html = html.replace(/<html([^>]*)>/i, "<html$1><head><base href=\"" + base + "\">" + patch + "</head>");
+      else html = "<base href=\"" + base + "\">" + patch + html;
+    } else if (patch) {
+      if (/<head[^>]*>/i.test(html)) html = html.replace(/<head([^>]*)>/i, "<head$1>" + patch);
+      else html = patch + html;
+    }
+    if (gh || /raw\.githubusercontent\.com/i.test(html)) html = bootGithubModules(html);
+    return html;
+  }
+
+  function classify(text) {
+    if (destBlocked(text)) return null;
+    var dest = extractDest(text);
+    if (dest) {
+      dest.url = cleanUrl(dest.url);
+      if (destBlocked(dest.url)) return null;
+      return dest;
+    }
+    if (/ruffle\.js|createPlayer\(|swfUrl/i.test(text) && /\.swf/i.test(text)) return { kind: "flash", url: "" };
+    if (/EJS_core\s*=\s*["']nds["']/i.test(text)) return { kind: "nds", url: "" };
+    if (/createUnityInstance|UnityLoader|unity-canvas|poki-sdk|emscripten|productName["']:\s*["']Granny/i.test(text)) return { kind: "web", url: "" };
+    if (/bobydob\/JSEngine|cc\.xml/i.test(text)) return { kind: "web", url: "" };
+    if (/little.?alchemy|infinite.?craft|nova craft|drive.?mad|escape.?road|id=["']game-container["']/i.test(text)) return { kind: "web", url: "" };
+    return null;
+  }
+
+  function viewport() {
+    var vv = window.visualViewport;
+    var w, h;
+    if (vv && vv.height) {
+      w = Math.round(vv.width);
+      h = Math.round(vv.height);
+    } else {
+      w = window.innerWidth || document.documentElement.clientWidth || 0;
+      h = window.innerHeight || document.documentElement.clientHeight || 0;
+    }
+    return { w: Math.max(320, w), h: Math.max(240, h) };
+  }
+
+  var lastLayout = "";
+  function layout() {
+    var vp = viewport();
+    var bar = document.getElementById("bar");
+    var main = document.getElementById("main");
+    var play = document.getElementById("play");
+    var frame = document.getElementById("frame");
+    var barH = Math.max(36, bar ? bar.offsetHeight : 44);
+    var tight = vp.w < 700 || (document.body.classList.contains("playing") && vp.w < 900);
+    document.body.classList.toggle("tight", tight);
+    var h = Math.max(240, vp.h - barH);
+    var playW = Math.max(280, vp.w - (!tight && !document.body.classList.contains("max") ? 280 : 0));
+    var key = playW + "x" + h + ":" + vp.w + "x" + vp.h + ":" + tight + ":" + document.body.className;
+    if (key === lastLayout) return;
+    lastLayout = key;
+    document.documentElement.style.height = vp.h + "px";
+    document.body.style.width = vp.w + "px";
+    document.body.style.height = vp.h + "px";
+    main.style.height = h + "px";
+    play.style.width = playW + "px";
+    play.style.height = h + "px";
+    play.style.minWidth = "280px";
+    play.style.minHeight = "240px";
+    frame.style.width = playW + "px";
+    frame.style.height = h + "px";
+    frame.style.minWidth = "280px";
+    frame.style.minHeight = "240px";
+    paintCode();
+  }
+
+  function injectFit(html) {
+    html = String(html || "");
+    if (/id=['"]embed-fit['"]/.test(html)) return html;
+    var shell = /ruffle|unity-canvas|createUnityInstance|EJS_|createPlayer|\.swf/i.test(html);
+    var fit = "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
+      "<style id='embed-fit'>html,body{margin:0!important;width:100%!important;height:100%!important;min-height:100%!important;background:#000" +
+      (shell ? ";overflow:hidden!important" : "") + "}" +
+      "ruffle-player,ruffle-embed,ruffle-object{display:block!important;width:100%!important;height:100%!important}" +
+      "ruffle-player canvas{image-rendering:auto}" +
+      (shell ? "#game,#unity-canvas,#unityContainer{width:100%!important;height:100%!important}" : "") +
+      ".unsupported-container,.unsupported-text{display:none!important}</style>" +
+      "<script id='embed-fit-js'>(function(){" +
+      "window.RufflePlayer=window.RufflePlayer||{};" +
+      "window.RufflePlayer.config=Object.assign(" + ruffleConfigJson() + ",window.RufflePlayer.config||{});" +
+      "var lw=0,lh=0;" +
+      "function sz(){var w=Math.max(320,window.innerWidth||document.documentElement.clientWidth||320),h=Math.max(240,window.innerHeight||document.documentElement.clientHeight||240);" +
+      "if(w===lw&&h===lh)return;lw=w;lh=h;" +
+      "document.documentElement.style.width=w+'px';document.documentElement.style.height=h+'px';" +
+      "if(document.body){document.body.style.width=w+'px';document.body.style.height=h+'px';document.body.style.margin='0';}" +
+      "var n=document.querySelectorAll('ruffle-player,ruffle-embed,ruffle-object,#unity-canvas,#unityContainer');" +
+      "for(var i=0;i<n.length;i++){n[i].style.width=w+'px';n[i].style.height=h+'px';n[i].style.maxWidth='none';n[i].style.maxHeight='none';}" +
+      "if(window.EJS_core||window.EJS_player){var g=document.getElementById('game');if(g){g.style.width=w+'px';g.style.height=h+'px';}}" +
+      "window.dispatchEvent(new Event('resize'));}" +
+      "setInterval(sz,2000);window.addEventListener('resize',sz);" +
+      "if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',sz);else sz();" +
+      "})();<\/script>";
+    if (/<head[^>]*>/i.test(html)) return html.replace(/<head([^>]*)>/i, "<head$1>" + fit);
+    return fit + html;
+  }
+
+  function ruffleKind(swf) {
+    var blob = String(swf || "") + " " + (sel || "") + " " + ((games[sel] && games[sel].name) || "");
+    var isaac = /binding.?of.?isaa?c|the_binding_of_isaac|BiWrath/i.test(blob);
+    var fancy = /fancypants|fancy-pants|FPAWorld/i.test(blob);
+    var au = /achievement\s*unlocked|achievement-unlocked|achievementunlocked/i.test(blob);
+    return { isaac: isaac, fancy: fancy, au: au, gpu: isaac || fancy || !!(sel && GPU_FILE[sel]) };
+  }
+
+  function ruffleConfigJson(swf) {
+    var src = swf ? cleanUrl(swf) : "";
+    var k = ruffleKind(src);
+    return JSON.stringify({
+      autoplay: "on",
+      unmuteOverlay: "hidden",
+      letterbox: k.isaac || k.au ? "off" : "on",
+      backgroundColor: k.au ? "#f4f0e0" : "#000000",
+      publicPath: RUFFLE_DIR,
+      preferredRenderer: k.gpu ? (webgl.level >= 2 ? "wgpu-webgl" : ruffleRenderer) : "canvas",
+      quality: "high",
+      scale: k.isaac || k.au ? "exactFit" : "showAll",
+      forceScale: !k.isaac,
+      forceAlign: !!k.au,
+      maxExecutionDuration: 90,
+      allowNetworking: "all",
+      base: src ? dirOf(src) : null
+    });
+  }
+
+  function ruffleDoc(swf) {
+    var src = cleanUrl(swf);
+    var cfg = JSON.parse(ruffleConfigJson(src));
+    var opts = {
+      url: src,
+      base: dirOf(src),
+      autoplay: cfg.autoplay,
+      unmuteOverlay: cfg.unmuteOverlay,
+      letterbox: cfg.letterbox,
+      backgroundColor: cfg.backgroundColor,
+      publicPath: cfg.publicPath,
+      preferredRenderer: cfg.preferredRenderer,
+      quality: cfg.quality,
+      scale: cfg.scale,
+      forceScale: cfg.forceScale,
+      forceAlign: cfg.forceAlign,
+      maxExecutionDuration: cfg.maxExecutionDuration,
+      allowNetworking: cfg.allowNetworking
+    };
+    var bg = cfg.backgroundColor || "#000";
+    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style id='embed-fit'>html,body,#g{margin:0;width:100%;height:100%;min-width:320px;min-height:240px;background:" + bg + ";overflow:hidden}ruffle-player{position:fixed;inset:0;width:100%;height:100%;min-width:320px;min-height:240px}ruffle-player canvas,ruffle-player svg{display:block!important;width:100%!important;height:100%!important;opacity:1!important;visibility:visible!important}</style>" +
+      "<script>window.RufflePlayer={config:" + ruffleConfigJson(src) + "};<\/script>" +
+      "<script src='" + RUFFLE + "'><\/script></head><body><div id='g'></div>" +
+      "<script>(function(){function boot(){if(!window.RufflePlayer||!window.RufflePlayer.newest){setTimeout(boot,40);return;}" +
+      "var w=window.RufflePlayer.newest();if(!w||!w.createPlayer){setTimeout(boot,40);return;}" +
+      "var p=w.createPlayer();p.style.position='fixed';p.style.inset='0';" +
+      "var lx=0,ly=0;" +
+      "function sz(){var x=Math.max(320,window.innerWidth||document.documentElement.clientWidth||320),y=Math.max(240,window.innerHeight||document.documentElement.clientHeight||240);" +
+      "var dead=p.clientWidth<32||p.clientHeight<32;" +
+      "if(!dead&&x===lx&&y===ly)return;lx=x;ly=y;" +
+      "p.style.width=x+'px';p.style.height=y+'px';p.style.minWidth='320px';p.style.minHeight='240px';" +
+      "p.setAttribute('width',x);p.setAttribute('height',y);" +
+      "document.documentElement.style.width=x+'px';document.documentElement.style.height=y+'px';" +
+      "if(document.body){document.body.style.width=x+'px';document.body.style.height=y+'px';}}" +
+      "document.getElementById('g').appendChild(p);" +
+      "function kick(){lx=0;ly=0;sz();}" +
+      "var pl=p.load(" + JSON.stringify(opts) + ");" +
+      "if(pl&&pl.then)pl.then(kick,kick);else setTimeout(kick,80);" +
+      "p.addEventListener('loadeddata',kick);" +
+      "setTimeout(kick,250);setTimeout(kick,1000);" +
+      "sz();window.addEventListener('resize',sz);setInterval(sz,2000);}" +
+      "boot();})();<\/script></body></html>";
+  }
+
+  function ndsDoc(rom) {
+    var url = cleanUrl(rom);
+    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body,#game{margin:0;width:100%;height:100%;min-width:320px;min-height:240px;background:#000;overflow:hidden}#game{position:fixed;inset:0}</style></head><body>" +
+      "<div id='game'></div><script>EJS_player='#game';EJS_core='nds';EJS_color='#000000';EJS_startOnLoaded=true;" +
+      "EJS_pathtodata=" + JSON.stringify(EJS) + ";EJS_gameUrl=" + JSON.stringify(url) + ";<\/script>" +
+      "<script src='" + EJS + "/loader.js'><\/script></body></html>";
+  }
+
+  var loadToken = 0;
+  var loadTimer = 0;
+  function setLoad(on, msg) {
+    var el = document.getElementById("load");
+    var t = document.getElementById("loadMsg");
+    if (t && msg) t.textContent = msg;
+    el.className = on ? "on" : "";
+    clearTimeout(loadTimer);
+    if (on) {
+      loadToken++;
+      loadTimer = setTimeout(function () { el.className = ""; }, 20000);
+    }
+  }
+  function hideLoad() {
+    clearTimeout(loadTimer);
+    document.getElementById("load").className = "";
+  }
+
+  var pageBlob = "";
+  function dropPageBlob() {
+    if (pageBlob) {
+      try { URL.revokeObjectURL(pageBlob); } catch (e) {}
+      pageBlob = "";
+    }
+  }
+
+  function show(html) {
+    layout();
+    var frame = document.getElementById("frame");
+    var tok = loadToken;
+    dropPageBlob();
+    frame.removeAttribute("src");
+    var skipFit = !!(ownCdnBase(html) || /createUnityInstance|poki-sdk|emscripten|type=["']module["']|nova-craft|raw\.githubusercontent\.com/i.test(html));
+    frame.srcdoc = skipFit ? html : injectFit(html);
+    frame.onload = function () {
+      layout();
+      try { frame.contentWindow.dispatchEvent(new Event("resize")); } catch (e) {}
+      if (tok === loadToken) setTimeout(hideLoad, 500);
+    };
+  }
+
+  function playHtml(html, base) {
+    html = withBase(html, base);
+    layout();
+    var frame = document.getElementById("frame");
+    var tok = loadToken;
+    dropPageBlob();
+    frame.removeAttribute("srcdoc");
+    pageBlob = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
+    frame.onload = function () {
+      layout();
+      try { frame.contentWindow.dispatchEvent(new Event("resize")); } catch (e) {}
+      if (tok === loadToken) setTimeout(hideLoad, 500);
+    };
+    frame.src = pageBlob;
+  }
+
+  function playUrl(url) {
+    layout();
+    var frame = document.getElementById("frame");
+    var tok = loadToken;
+    dropPageBlob();
+    frame.removeAttribute("srcdoc");
+    frame.onload = function () {
+      layout();
+      if (tok === loadToken) setTimeout(hideLoad, 500);
+    };
+    frame.src = mirrors(url)[0] || cleanUrl(url);
+  }
+
+  async function fetchText(url) {
+    var list = mirrors(url);
+    var i, err;
+    for (i = 0; i < list.length; i++) {
+      try {
+        var res = await fetch(list[i]);
+        if (res.ok) return await res.text();
+        err = res.status;
+      } catch (e) { err = e; }
+    }
+    throw err;
+  }
+
+  function liteUrl(file) {
+    return CDN + LITE + file;
+  }
+
+  function pageUrl(g) {
+    if (g.dest && /\.html($|\?)/i.test(g.dest)) return g.dest;
+    if (g.file.indexOf("http") === 0) return g.file;
+    if (g.file.indexOf("seraph/") === 0) return CDN + SERAPH + "games/" + g.file.slice(7) + "/index.html";
+    return liteUrl(g.file);
+  }
+
+  var noteTimer = 0;
+  function chromeNote(msg) {
+    var el = document.getElementById("note");
+    document.getElementById("noteMsg").textContent = msg;
+    el.className = "on";
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(function () { el.className = ""; }, 6000);
+  }
+
+  function getCode() {
+    var el = document.getElementById("code");
+    return el ? el.value : "";
+  }
+
+  function escHi(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function hiPaint(src, kind) {
+    src = escHi(src);
+    if (kind === "css") {
+      src = src.replace(/(\/\*[\s\S]*?\*\/)/g, '<i class="cmt">$1</i>');
+      src = src.replace(/("[^"]*"|'[^']*')/g, '<i class="str">$1</i>');
+      src = src.replace(/\b(\d+\.?\d*)(px|em|rem|%|vh|vw|s|ms)?\b/g, '<i class="num">$1$2</i>');
+      src = src.replace(/(^|[{};\s])([\w-]+)(?=\s*:)/g, '$1<i class="key">$2</i>');
+      src = src.replace(/(^|[\s,}])([.#]?[a-zA-Z][\w-]*)(?=\s*\{)/g, '$1<i class="sel">$2</i>');
+      return src;
+    }
+    if (kind === "js") {
+      src = src.replace(/(\/\/.*?$|\/\*[\s\S]*?\*\/)/gm, '<i class="cmt">$1</i>');
+      src = src.replace(/(`(?:\\.|[^\\`])*`|"(?:\\.|[^\\"])*"|'(?:\\.|[^\\'])*')/g, '<i class="str">$1</i>');
+      src = src.replace(/\b(\d+\.?\d*|0x[0-9a-fA-F]+)\b/g, '<i class="num">$1</i>');
+      src = src.replace(/\b(function|var|let|const|if|else|return|for|while|new|this|true|false|null|undefined|try|catch|async|await|class|typeof|in|of|break|continue|switch|case|default|void)\b/g, '<i class="key">$1</i>');
+      return src;
+    }
+    src = src.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<i class="cmt">$1</i>');
+    src = src.replace(/(&lt;\/?[a-zA-Z][\w:-]*)/g, '<i class="tag">$1</i>');
+    src = src.replace(/\s([a-zA-Z_:][\w:.-]*)(?==)/g, ' <i class="attr">$1</i>');
+    src = src.replace(/(&quot;[^&]*&quot;|"[^"]*"|'[^']*')/g, '<i class="str">$1</i>');
+    return src;
+  }
+
+  function paintMixed(text) {
+    if (editLang === "css") return hiPaint(text, "css");
+    if (editLang === "javascript") return hiPaint(text, "js");
+    if (editLang === "html") return hiPaint(text, "html");
+    var out = "";
+    var src = text;
+    var i = 0;
+    while (i < src.length) {
+      var style = src.toLowerCase().indexOf("<style", i);
+      var script = src.toLowerCase().indexOf("<script", i);
+      var next = -1, kind = "";
+      if (style >= 0 && (script < 0 || style < script)) { next = style; kind = "style"; }
+      else if (script >= 0) { next = script; kind = "script"; }
+      if (next < 0) {
+        out += hiPaint(src.slice(i), "html");
+        break;
+      }
+      out += hiPaint(src.slice(i, next), "html");
+      var gt = src.indexOf(">", next);
+      if (gt < 0) { out += hiPaint(src.slice(next), "html"); break; }
+      var close = kind === "style" ? "</style>" : "</script>";
+      var end = src.toLowerCase().indexOf(close, gt + 1);
+      out += hiPaint(src.slice(next, gt + 1), "html");
+      if (end < 0) {
+        out += hiPaint(src.slice(gt + 1), kind === "style" ? "css" : "js");
+        break;
+      }
+      out += hiPaint(src.slice(gt + 1, end), kind === "style" ? "css" : "js");
+      out += hiPaint(src.slice(end, end + close.length), "html");
+      i = end + close.length;
+    }
+    return out;
+  }
+
+  function paintCode() {
+    var hi = document.getElementById("codeHi");
+    var el = document.getElementById("code");
+    if (!hi || !el) return;
+    var text = el.value || "";
+    try {
+      hi.innerHTML = (text.length > 180000 ? escHi(text) : paintMixed(text)) + "\n";
+    } catch (e) {
+      hi.textContent = text + "\n";
+    }
+    hi.scrollTop = el.scrollTop;
+    hi.scrollLeft = el.scrollLeft;
+  }
+
+  function inBlock(text, pos, open, close) {
+    var before = text.slice(0, pos).toLowerCase();
+    var o = before.lastIndexOf(open);
+    var c = before.lastIndexOf(close);
+    if (o < 0 || o < c) return false;
+    var gt = text.indexOf(">", o);
+    return gt >= 0 && gt < pos;
+  }
+
+  function inTag(text, pos) {
+    var lt = text.lastIndexOf("<", pos - 1);
+    var gt = text.lastIndexOf(">", pos - 1);
+    return lt > gt;
+  }
+
+  function codeKind(text, pos) {
+    if (editLang === "css") return "css";
+    if (editLang === "javascript") return "js";
+    if (editLang === "html") return inTag(text, pos) ? "html-tag" : "html";
+    if (inBlock(text, pos, "<style", "</style>")) return "css";
+    if (inBlock(text, pos, "<script", "</script>")) return "js";
+    if (inTag(text, pos)) return "html-tag";
+    return "html";
+  }
+
+  function wordAt(text, pos) {
+    var a = text.slice(0, pos);
+    var m = a.match(/[@.#]?[A-Za-z0-9_:-]*$/);
+    return m ? m[0] : "";
+  }
+
+  var HINTS = {
+    html: [
+      ["div", "<div>|</div>", "tag"], ["span", "<span>|</span>", "tag"], ["canvas", '<canvas id="game"></canvas>', "tag"],
+      ["button", "<button>|</button>", "tag"], ["input", '<input type="text">', "tag"], ["img", '<img src="|" alt="">', "tag"],
+      ["a", '<a href="|">', "tag"], ["script", "<script>|\n</script>", "tag"], ["style", "<style>|\n</style>", "tag"],
+      ["link", '<link rel="stylesheet" href="|">', "tag"], ["meta", '<meta charset="utf-8">', "tag"],
+      ["viewport", '<meta name="viewport" content="width=device-width, initial-scale=1">', "snip"],
+      ["html5", "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<title>|</title>\n</head>\n<body>\n\n</body>\n</html>", "snip"],
+      ["unity-canvas", '<div id="unity-container"><canvas id="unity-canvas"></canvas></div>', "snip"],
+      ["p", "<p>|</p>", "tag"], ["h1", "<h1>|</h1>", "tag"], ["ul", "<ul>\n  <li>|</li>\n</ul>", "tag"],
+      ["iframe", '<iframe src="|" allowfullscreen></iframe>', "tag"], ["base", '<base href="|">', "tag"]
+    ],
+    attrs: [
+      ["id", 'id="|"', "attr"], ["class", 'class="|"', "attr"], ["src", 'src="|"', "attr"],
+      ["href", 'href="|"', "attr"], ["type", 'type="|"', "attr"], ["width", 'width="|"', "attr"],
+      ["height", 'height="|"', "attr"], ["style", 'style="|"', "attr"], ["alt", 'alt="|"', "attr"],
+      ["title", 'title="|"', "attr"], ["defer", "defer", "attr"], ["async", "async", "attr"],
+      ["allowfullscreen", "allowfullscreen", "attr"], ["onclick", 'onclick="|"', "attr"],
+      ["placeholder", 'placeholder="|"', "attr"], ["value", 'value="|"', "attr"],
+      ["content", 'content="|"', "attr"], ["rel", 'rel="|"', "attr"], ["charset", 'charset="utf-8"', "attr"]
+    ],
+    css: [
+      ["display", "display: |;", "prop"], ["position", "position: |;", "prop"], ["flex", "display: flex;\nalign-items: center;\njustify-content: |;", "snip"],
+      ["inset", "inset: 0;", "prop"], ["width", "width: |;", "prop"], ["height", "height: |;", "prop"],
+      ["min-width", "min-width: |;", "prop"], ["min-height", "min-height: |;", "prop"],
+      ["margin", "margin: |;", "prop"], ["padding", "padding: |;", "prop"], ["border", "border: |;", "prop"],
+      ["background", "background: |;", "prop"], ["background-color", "background-color: |;", "prop"],
+      ["color", "color: |;", "prop"], ["font", "font: |;", "prop"], ["font-size", "font-size: |;", "prop"],
+      ["font-family", "font-family: |;", "prop"], ["overflow", "overflow: |;", "prop"],
+      ["z-index", "z-index: |;", "prop"], ["opacity", "opacity: |;", "prop"],
+      ["transform", "transform: |;", "prop"], ["transition", "transition: |;", "prop"],
+      ["animation", "animation: |;", "prop"], ["border-radius", "border-radius: |;", "prop"],
+      ["box-sizing", "box-sizing: border-box;", "prop"], ["cursor", "cursor: |;", "prop"],
+      ["pointer-events", "pointer-events: |;", "prop"], ["gap", "gap: |;", "prop"],
+      ["text-align", "text-align: |;", "prop"], ["line-height", "line-height: |;", "prop"],
+      ["user-select", "user-select: none;", "prop"], ["object-fit", "object-fit: |;", "prop"],
+      ["flex-direction", "flex-direction: |;", "prop"], ["align-items", "align-items: |;", "prop"],
+      ["justify-content", "justify-content: |;", "prop"], ["top", "top: |;", "prop"],
+      ["left", "left: |;", "prop"], ["right", "right: |;", "prop"], ["bottom", "bottom: |;", "prop"],
+      ["fill-screen", "html, body {\n  margin: 0;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n}\ncanvas {\n  display: block;\n  width: 100%;\n  height: 100%;\n}", "snip"],
+      ["keyframes", "@keyframes spin {\n  to { transform: rotate(360deg); }\n}", "snip"]
+    ],
+    cssval: [
+      ["flex", "flex", "val"], ["block", "block", "val"], ["none", "none", "val"],
+      ["absolute", "absolute", "val"], ["relative", "relative", "val"], ["fixed", "fixed", "val"],
+      ["sticky", "sticky", "val"], ["center", "center", "val"], ["space-between", "space-between", "val"],
+      ["hidden", "hidden", "val"], ["auto", "auto", "val"], ["cover", "cover", "val"],
+      ["contain", "contain", "val"], ["pointer", "pointer", "val"], ["column", "column", "val"],
+      ["row", "row", "val"], ["wrap", "wrap", "val"], ["border-box", "border-box", "val"]
+    ],
+    js: [
+      ["function", "function |() {\n  \n}", "kw"], ["for", "for (var i = 0; i < |.length; i++) {\n  \n}", "kw"],
+      ["if", "if (|) {\n  \n}", "kw"], ["const", "const | = ", "kw"], ["let", "let | = ", "kw"],
+      ["var", "var | = ", "kw"], ["return", "return |;", "kw"], ["async", "async function |() {\n  \n}", "kw"],
+      ["getElementById", 'document.getElementById("|")', "api"],
+      ["querySelector", 'document.querySelector("|")', "api"],
+      ["querySelectorAll", 'document.querySelectorAll("|")', "api"],
+      ["createElement", 'document.createElement("|")', "api"],
+      ["addEventListener", 'addEventListener("|", function (e) {\n  \n})', "api"],
+      ["requestAnimationFrame", "requestAnimationFrame(|)", "api"],
+      ["fetch", 'fetch("|").then(function (r) { return r.text(); }).then(function (t) {\n  \n})', "api"],
+      ["JSON.parse", "JSON.parse(|)", "api"], ["JSON.stringify", "JSON.stringify(|)", "api"],
+      ["localStorage.getItem", 'localStorage.getItem("|")', "api"],
+      ["localStorage.setItem", 'localStorage.setItem("|", )', "api"],
+      ["console.log", "console.log(|)", "api"],
+      ["setTimeout", "setTimeout(function () {\n  |\n}, 1000)", "api"],
+      ["setInterval", "setInterval(function () {\n  |\n}, 1000)", "api"],
+      ["getContext", 'canvas.getContext("2d")', "api"],
+      ["webgl", 'canvas.getContext("webgl") || canvas.getContext("experimental-webgl")', "api"],
+      ["webgl2", 'canvas.getContext("webgl2")', "api"],
+      ["createUnityInstance", "createUnityInstance(canvas, config, function (progress) {\n  |\n}).then(function (unityInstance) {\n  \n})", "api"],
+      ["preventDefault", "e.preventDefault()", "api"],
+      ["classList.add", 'classList.add("|")', "api"],
+      ["appendChild", "appendChild(|)", "api"],
+      ["innerHTML", "innerHTML = |", "api"],
+      ["textContent", "textContent = |", "api"],
+      ["createObjectURL", "URL.createObjectURL(new Blob([|], { type: \"text/html\" }))", "api"],
+      ["raf-loop", "function loop(t) {\n  requestAnimationFrame(loop);\n  |\n}\nrequestAnimationFrame(loop);", "snip"],
+      ["canvas-game", "var canvas = document.getElementById(\"game\") || document.querySelector(\"canvas\");\nvar ctx = canvas.getContext(\"2d\");\nfunction resize() {\n  canvas.width = window.innerWidth;\n  canvas.height = window.innerHeight;\n}\nwindow.addEventListener(\"resize\", resize);\nresize();\nfunction loop() {\n  requestAnimationFrame(loop);\n  ctx.clearRect(0, 0, canvas.width, canvas.height);\n  |\n}\nloop();", "snip"]
+    ]
+  };
+
+  function cssValueMode(text, pos) {
+    var bit = text.slice(Math.max(0, pos - 80), pos);
+    var col = bit.lastIndexOf(":");
+    var stop = Math.max(bit.lastIndexOf(";"), bit.lastIndexOf("{"));
+    return col > stop;
+  }
+
+  function listHints(kind, text, pos) {
+    var rows = [];
+    if (kind === "html") rows = HINTS.html;
+    else if (kind === "html-tag") rows = inTag(text, pos) && /<[\w:-]*$/.test(text.slice(0, pos)) ? HINTS.html : HINTS.attrs;
+    else if (kind === "css") rows = cssValueMode(text, pos) ? HINTS.cssval : HINTS.css;
+    else rows = HINTS.js;
+    var pre = wordAt(text, pos).replace(/^[@.#]/, "").toLowerCase();
+    var lt = text.charAt(pos - pre.length - (text.charAt(pos - pre.length - 1) === "<" ? 1 : 0));
+    var out = [];
+    var i, row, lab;
+    for (i = 0; i < rows.length; i++) {
+      row = rows[i];
+      lab = row[0].toLowerCase();
+      if (!pre || lab.indexOf(pre) === 0 || lab.indexOf(pre) !== -1) out.push(row);
+    }
+    if (kind === "html" && (pre === "<" || lt === "<")) {
+      out = HINTS.html.filter(function (r) { return !pre || r[0].toLowerCase().indexOf(pre.replace("<", "")) === 0; });
+    }
+    return out.slice(0, 24);
+  }
+
+  function hideSuggest() {
+    document.getElementById("suggest").className = "";
+    suggestItems = [];
+  }
+
+  function caretBox(el) {
+    var probe = document.getElementById("caretProbe");
+    if (!probe) {
+      probe = document.createElement("div");
+      probe.id = "caretProbe";
+      probe.setAttribute("aria-hidden", "true");
+      document.body.appendChild(probe);
+    }
+    var cs = window.getComputedStyle(el);
+    probe.style.cssText = "position:absolute;left:-9999px;top:0;visibility:hidden;white-space:pre;font:" + cs.font +
+      ";padding:" + cs.padding + ";border:" + cs.border + ";width:" + el.clientWidth + "px;line-height:" + cs.lineHeight + ";";
+    var v = el.value.slice(0, el.selectionStart);
+    probe.textContent = v;
+    var mark = document.createElement("span");
+    mark.textContent = "|";
+    probe.appendChild(mark);
+    var r = el.getBoundingClientRect();
+    var pr = probe.getBoundingClientRect();
+    var mr = mark.getBoundingClientRect();
+    return { x: r.left + (mr.left - pr.left) - el.scrollLeft, y: r.top + (mr.top - pr.top) - el.scrollTop };
+  }
+
+  function showSuggest(items) {
+    var box = document.getElementById("suggest");
+    var el = document.getElementById("code");
+    suggestItems = items || [];
+    suggestI = 0;
+    if (!suggestItems.length) { hideSuggest(); return; }
+    box.innerHTML = suggestItems.map(function (row, i) {
+      return '<button type="button" data-i="' + i + '" class="' + (i === 0 ? "on" : "") + '"><b>' +
+        row[0].replace(/</g, "") + "</b><i>" + row[2] + "</i></button>";
+    }).join("");
+    var xy = caretBox(el);
+    var wrap = document.getElementById("codeEdit").getBoundingClientRect();
+    var x = Math.max(8, Math.min(xy.x - wrap.left, wrap.width - 260));
+    var y = xy.y - wrap.top + 18;
+    if (y + 180 > wrap.height) y = Math.max(8, xy.y - wrap.top - 160);
+    box.style.left = x + "px";
+    box.style.top = y + "px";
+    box.className = "on";
+  }
+
+  function acceptSuggest(i) {
+    var row = suggestItems[i];
+    var el = document.getElementById("code");
+    if (!row || !el) return;
+    var pos = el.selectionStart;
+    var text = el.value;
+    var pre = wordAt(text, pos);
+    var from = pos - pre.length;
+    if (text.charAt(from - 1) === "<" && row[1].charAt(0) === "<") from -= 1;
+    var ins = row[1];
+    var caret = ins.indexOf("|");
+    if (caret < 0) caret = ins.length;
+    else ins = ins.replace("|", "");
+    el.value = text.slice(0, from) + ins + text.slice(pos);
+    el.selectionStart = el.selectionEnd = from + caret;
+    hideSuggest();
+    paintCode();
+    el.focus();
+  }
+
+  function updateSuggest(force) {
+    var el = document.getElementById("code");
+    if (!el) return;
+    var pos = el.selectionStart;
+    var text = el.value;
+    var kind = codeKind(text, pos);
+    var pre = wordAt(text, pos);
+    if (!force && pre.length < 1) { hideSuggest(); return; }
+    showSuggest(listHints(kind, text, pos));
+  }
+
+  function setCode(text) {
+    var el = document.getElementById("code");
+    if (el) el.value = String(text || "");
+    paintCode();
+    hideSuggest();
+  }
+
+  function setView(mode) {
+    viewMode = mode === "raw" ? "raw" : "play";
+    document.body.classList.toggle("view-raw", viewMode === "raw");
+    document.body.classList.toggle("view-play", viewMode === "play");
+    document.getElementById("modeRaw").className = viewMode === "raw" ? "on" : "";
+    document.getElementById("modePlay").className = viewMode === "play" ? "on" : "";
+    layout();
+    paintCode();
+  }
+
+  function fillCode(text, src) {
+    setCode(text);
+    document.getElementById("codeMeta").textContent = (src || "editor") +
+      (text ? " · " + String(text).length + " chars" : "");
+  }
+
+  async function loadRaw(file) {
+    var g = games[file];
+    if (!g) return;
+    var blob = (g.file + " " + g.name + " " + (g.dest || "")).toLowerCase();
+    if (/roblox/.test(blob)) {
+      chromeNote("yk i cant load roblox, sorry...");
+      return;
+    }
+    sel = file;
+    document.body.classList.add("playing");
+    document.getElementById("empty").className = "hide";
+    setView("raw");
+    setLoad(true, "loading source…");
+    layout();
+    render();
+    var url = pageUrl(g);
+    lastUrl = mirrors(url)[0] || url;
+    lastBase = dirOf(lastUrl);
+    try {
+      var txt = await fetchText(url);
+      fillCode(innerHtml(txt) || txt, lastUrl);
+    } catch (e) {
+      var dest = g.dest || "";
+      if (dest && /\.swf/i.test(dest)) {
+        lastBase = dirOf(dest);
+        fillCode(ruffleDoc(dest), "ruffle wrap · " + dest);
+      } else if (g.kind === "nds" && dest) {
+        fillCode(ndsDoc(dest), "nds wrap · " + dest);
+      } else {
+        fillCode("<!-- failed to load " + url + " -->\n" + String(e), url);
+      }
+    }
+    hideLoad();
+  }
+
+  function openGame(file) {
+    if (viewMode === "raw") loadRaw(file);
+    else play(file);
+  }
+
+  function runEditor() {
+    var html = getCode();
+    if (!String(html).trim()) return;
+    document.body.classList.add("playing");
+    document.getElementById("empty").className = "hide";
+    setView("play");
+    setLoad(true, "running editor…");
+    playHtml(html, lastBase || dirOf(lastUrl));
+  }
+
+  async function fetchPasted() {
+    var u = (document.getElementById("srcUrl").value || "").trim();
+    if (!u) return;
+    lastUrl = mirrors(u)[0] || cleanUrl(u);
+    lastBase = dirOf(lastUrl);
+    document.body.classList.add("playing");
+    document.getElementById("empty").className = "hide";
+    sel = null;
+    setView("raw");
+    setLoad(true, "fetching…");
+    layout();
+    render();
+    try {
+      var txt = await fetchText(u);
+      fillCode(innerHtml(txt) || txt, lastUrl);
+    } catch (e) {
+      fillCode("<!-- failed to load " + u + " -->\n" + String(e), u);
+    }
+    hideLoad();
+  }
+
+  async function play(file) {
+    var g = games[file];
+    if (!g) return;
+    var blob = (g.file + " " + g.name + " " + (g.dest || "")).toLowerCase();
+    if (/roblox/.test(blob)) {
+      chromeNote("yk i cant load roblox, sorry...");
+      return;
+    }
+    sel = file;
+    document.body.classList.add("playing");
+    document.getElementById("empty").className = "hide";
+    setView("play");
+    setLoad(true, "loading " + g.name + "…");
+    layout();
+    render();
+    var url = pageUrl(g);
+    lastUrl = mirrors(url)[0] || url;
+    lastBase = dirOf(lastUrl);
+    try {
+      var txt = await fetchText(url);
+      fillCode(innerHtml(txt) || txt, lastUrl);
+      var html = fixGameHtml(innerHtml(txt));
+      var info = classify(txt);
+      var swf = "";
+      if (info && info.url) {
+        var abs = info.url;
+        if (!/^https?:/i.test(abs)) abs = dirOf(mirrors(url)[0]) + abs.replace(/^\.\//, "");
+        abs = cleanUrl(abs);
+        var pageDest = g.dest && /\.html($|\?)/i.test(g.dest);
+        if (!destBlocked(abs) && !pageDest) {
+          g.dest = abs;
+          if (info.kind) g.kind = info.kind;
+        }
+        if (info.kind === "flash" || /\.swf($|\?)/i.test(abs)) swf = abs;
+      }
+      if (swf && /\.swf($|\?)/i.test(swf) && !destBlocked(swf)) {
+        show(ruffleDoc(swf));
+        return;
+      }
+      var live = mirrors(url)[0];
+      if (g.kind !== "nds" && html && (needsLiveOrigin(html) || g.kind === "web")) {
+        playHtml(html, ownCdnBase(html) || dirOf(live));
+        return;
+      }
+      if (html && /EJS_/i.test(html)) {
+        show(withBase(html, ownCdnBase(html) || dirOf(live)));
+        return;
+      }
+    } catch (e) {}
+    var dest = g.dest;
+    if (dest && destBlocked(dest)) { hideLoad(); return; }
+    if (dest && /\.swf/i.test(dest)) {
+      show(ruffleDoc(dest));
+      return;
+    }
+    if (g.kind === "nds" && dest) {
+      show(ndsDoc(dest));
+      return;
+    }
+    if (dest && /\.json$/i.test(dest)) {
+      dest = dest.replace(/\/Build\/[^/]+\.json$/i, "/index.html");
+      if (destBlocked(dest)) { hideLoad(); return; }
+      url = dest;
+    }
+    playUrl(url);
+  }
+
+  function saveCache() {
+    try {
+      localStorage.setItem("gameHtmlDevSuite1", JSON.stringify({ t: Date.now(), games: games }));
+    } catch (e) {}
+  }
+
+  function loadCache() {
+    try {
+      var raw = localStorage.getItem("gameHtmlDevSuite1") || localStorage.getItem("liteFlashDs11");
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      if (!data || !data.games || Date.now() - data.t > 7 * 24 * 60 * 60 * 1000) return;
+      Object.keys(data.games).forEach(function (file) {
+        var g = data.games[file];
+        add(file, g.kind, g.dest);
+      });
+    } catch (e) {}
+  }
+
+  async function scanLite() {
+    var files;
+    try {
+      var res = await fetch(API);
+      files = await res.json();
+      if (!Array.isArray(files)) files = [];
+    } catch (e) {
+      return;
+    }
+    var queue = files.filter(function (f) {
+      if (!f || f.type !== "file" || !/\.html$/i.test(f.name) || BLOCK_FILE[f.name]) return false;
+      var n = f.name.toLowerCase();
+      var sz = f.size || 0;
+      if (n.indexOf("gba") !== -1 || n.indexOf("nes") !== -1 || n.indexOf("n64") !== -1) return false;
+      if (/flash|ruffle|swf|achill|riddle|cookie|granny|burger|fnaf|gun-mayhem|ragdoll|drive-mad|escape-road|parenting/.test(n)) return true;
+      if (/(^|-)(ds|dsi|nds)\.html$/.test(n) || /mario-kart-ds|mario-party-ds|super-mario-64-ds|animal-crossing-wild-world/.test(n)) return true;
+      if (sz >= 900 && sz <= 1600) return true;
+      if (sz >= 2400 && sz <= 4500) return true;
+      return false;
+    });
+    var i = 0;
+    async function worker() {
+      while (i < queue.length) {
+        var f = queue[i++];
+        if (games[f.name]) continue;
+        try {
+          var txt = await fetchText(liteUrl(f.name));
+          var info = classify(txt);
+          if (info) {
+            add(f.name, info.kind, info.url);
+            render();
+          }
+        } catch (e) {}
+      }
+    }
+    await Promise.all([worker(), worker(), worker(), worker()]);
+  }
+
+  async function scanSeraph() {
+    return;
+  }
+
+  async function scan() {
+    setLoad(true, "loading games…");
+    document.getElementById("stat").textContent = "scanning…";
+    await scanLite();
+    await scanSeraph();
+    saveCache();
+    render();
+    bootPlay();
+    if (!sel) hideLoad();
+  }
+
+  document.getElementById("noteX").addEventListener("click", function () {
+    document.getElementById("note").className = "";
+  });
+  document.getElementById("list").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-file]");
+    if (b) openGame(b.getAttribute("data-file"));
+  });
+  document.getElementById("modeRaw").addEventListener("click", function () {
+    setView("raw");
+    if (sel && !getCode()) loadRaw(sel);
+  });
+  document.getElementById("modePlay").addEventListener("click", function () {
+    setView("play");
+    if (sel) play(sel);
+  });
+  document.getElementById("runBtn").addEventListener("click", runEditor);
+  document.getElementById("copyBtn").addEventListener("click", function () {
+    var t = getCode();
+    if (!t) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(function () {
+        chromeNote("copied " + t.length + " chars");
+      }).catch(function () { chromeNote("copy failed"); });
+    } else chromeNote("copy failed");
+  });
+  document.getElementById("fetchBtn").addEventListener("click", fetchPasted);
+  document.getElementById("srcUrl").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") fetchPasted();
+  });
+  document.getElementById("code").addEventListener("input", function () {
+    clearTimeout(paintTimer);
+    paintTimer = setTimeout(paintCode, 20);
+    updateSuggest(false);
+  });
+  document.getElementById("code").addEventListener("scroll", function () {
+    var hi = document.getElementById("codeHi");
+    if (hi) { hi.scrollTop = this.scrollTop; hi.scrollLeft = this.scrollLeft; }
+  });
+  document.getElementById("code").addEventListener("click", function () { hideSuggest(); });
+  document.getElementById("code").addEventListener("keydown", function (e) {
+    var box = document.getElementById("suggest");
+    var open = box.className === "on" && suggestItems.length;
+    if (open && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+      e.preventDefault();
+      suggestI = (suggestI + (e.key === "ArrowDown" ? 1 : suggestItems.length - 1)) % suggestItems.length;
+      [].forEach.call(box.querySelectorAll("button"), function (b, n) {
+        b.className = n === suggestI ? "on" : "";
+      });
+      var on = box.querySelector("button.on");
+      if (on) on.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    if (open && (e.key === "Enter" || e.key === "Tab") && !e.shiftKey) {
+      e.preventDefault();
+      acceptSuggest(suggestI);
+      return;
+    }
+    if (open && e.key === "Escape") {
+      e.preventDefault();
+      hideSuggest();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === " " ) {
+      e.preventDefault();
+      updateSuggest(true);
+      return;
+    }
+    if (e.key === "Tab" && !open) {
+      e.preventDefault();
+      var el = this, s = el.selectionStart, t = el.value, n = el.selectionEnd;
+      el.value = t.slice(0, s) + "  " + t.slice(n);
+      el.selectionStart = el.selectionEnd = s + 2;
+      paintCode();
+    }
+  });
+  document.getElementById("suggest").addEventListener("mousedown", function (e) {
+    var b = e.target.closest("[data-i]");
+    if (!b) return;
+    e.preventDefault();
+    acceptSuggest(parseInt(b.getAttribute("data-i"), 10));
+  });
+  document.getElementById("codeBar").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-lang]");
+    if (!b) return;
+    editLang = b.getAttribute("data-lang");
+    [].forEach.call(document.querySelectorAll("#codeBar button"), function (x) {
+      x.className = x === b ? "on" : "";
+    });
+    paintCode();
+  });
+  document.getElementById("tabs").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-tab]");
+    if (!b) return;
+    tab = b.getAttribute("data-tab");
+    [].forEach.call(document.querySelectorAll("#tabs button"), function (x) {
+      x.className = x === b ? "on" : "";
+    });
+    render();
+  });
+  document.getElementById("q").addEventListener("input", function () {
+    query = this.value;
+    render();
+  });
+  document.getElementById("back").addEventListener("click", function () {
+    var frame = document.getElementById("frame");
+    dropPageBlob();
+    frame.srcdoc = "";
+    frame.src = "about:blank";
+    document.body.classList.remove("playing");
+    document.getElementById("empty").className = "";
+    hideLoad();
+    sel = null;
+    exitMax();
+    closeSheet();
+    layout();
+    render();
+  });
+
+  function fsEl() {
+    return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+  }
+  function canNativeFs() {
+    if (document.fullscreenEnabled || document.webkitFullscreenEnabled || document.msFullscreenEnabled) return true;
+    try {
+      if (document.featurePolicy && document.featurePolicy.allowsFeature) return document.featurePolicy.allowsFeature("fullscreen");
+    } catch (e) {}
+    return false;
+  }
+  function askFs(el) {
+    if (!el) return Promise.reject();
+    try {
+      if (el.requestFullscreen) return el.requestFullscreen();
+      if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+        return Promise.resolve();
+      }
+      if (el.msRequestFullscreen) {
+        el.msRequestFullscreen();
+        return Promise.resolve();
+      }
+    } catch (e) {
+      return Promise.reject(e);
+    }
+    return Promise.reject();
+  }
+  function exitFs() {
+    try {
+      if (document.exitFullscreen) return document.exitFullscreen();
+      if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+      if (document.msExitFullscreen) return document.msExitFullscreen();
+    } catch (e) {}
+  }
+  function enterMax() {
+    document.body.classList.add("max");
+    document.getElementById("full").className = "on";
+    layout();
+  }
+  function exitMax() {
+    document.body.classList.remove("max");
+    document.getElementById("full").className = "";
+    layout();
+  }
+  function goFull() {
+    if (fsEl()) {
+      exitFs();
+      exitMax();
+      return;
+    }
+    if (document.body.classList.contains("max")) {
+      exitMax();
+      return;
+    }
+    if (!canNativeFs()) {
+      enterMax();
+      return;
+    }
+    var box = document.getElementById("play");
+    var p = askFs(box);
+    if (p && p.then) {
+      p.then(function () {
+        if (fsEl()) { document.getElementById("full").className = "on"; layout(); }
+        else enterMax();
+      }).catch(function () { enterMax(); });
+    } else {
+      setTimeout(function () {
+        if (fsEl()) { document.getElementById("full").className = "on"; layout(); }
+        else enterMax();
+      }, 80);
+    }
+  }
+  function onFsChange() {
+    if (!fsEl()) document.getElementById("full").className = document.body.classList.contains("max") ? "on" : "";
+    else document.getElementById("full").className = "on";
+    layout();
+  }
+  function bootPlay() {
+    if (bootGame && games[bootGame] && !sel) play(bootGame);
+  }
+
+  document.getElementById("full").addEventListener("click", goFull);
+  document.addEventListener("fullscreenchange", onFsChange);
+  document.addEventListener("webkitfullscreenchange", onFsChange);
+
+  function applyTheme(id) {
+    var ok = false, i;
+    for (i = 0; i < THEMES.length; i++) if (THEMES[i][0] === id) ok = true;
+    if (!ok) id = "why";
+    document.documentElement.setAttribute("data-theme", id);
+    try { localStorage.setItem("whyDevSuiteTheme", id); } catch (e) {}
+    [].forEach.call(document.querySelectorAll("#themes button"), function (b) {
+      b.className = b.getAttribute("data-theme") === id ? "on" : "";
+    });
+  }
+  function openSheet(kind) {
+    document.getElementById("sheet").className = "on";
+    document.getElementById("sheetTitle").textContent = kind === "theme" ? "THEMES" : "HELP";
+    document.getElementById("logPane").style.display = kind === "theme" ? "none" : "block";
+    document.getElementById("themePane").style.display = kind === "theme" ? "block" : "none";
+    document.getElementById("logBtn").className = kind === "log" ? "on" : "";
+    document.getElementById("themeBtn").className = kind === "theme" ? "on" : "";
+  }
+  function closeSheet() {
+    document.getElementById("sheet").className = "";
+    document.getElementById("logBtn").className = "";
+    document.getElementById("themeBtn").className = "";
+  }
+  document.getElementById("logPane").innerHTML = LOGS.map(function (row) {
+    return '<div class="log"><b>' + row[0] + "</b><p>" + row[1] + "</p></div>";
+  }).join("");
+  document.getElementById("themes").innerHTML = THEMES.map(function (row) {
+    return '<button type="button" data-theme="' + row[0] + '">' + row[1] + "</button>";
+  }).join("");
+  document.getElementById("themes").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-theme]");
+    if (b) applyTheme(b.getAttribute("data-theme"));
+  });
+  document.getElementById("logBtn").addEventListener("click", function () { openSheet("log"); });
+  document.getElementById("themeBtn").addEventListener("click", function () { openSheet("theme"); });
+  document.getElementById("sheetX").addEventListener("click", closeSheet);
+  document.getElementById("sheet").addEventListener("click", function (e) {
+    if (e.target === this) closeSheet();
+  });
+  try { applyTheme(localStorage.getItem("whyDevSuiteTheme") || "lab"); } catch (e) { applyTheme("lab"); }
+
+  loadCache();
+  render();
+  layout();
+  setView("play");
+  if (bootGame) enterMax();
+  bootPlay();
+  window.addEventListener("resize", layout);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", layout);
+  scan();
+})();
+</script>
+</body>
+</html>
