@@ -204,11 +204,11 @@
     ["paper", "Paper"]
   ];
   var LOGS = [
-    ["Aug 28, 2026", "Themes + update log. Isaac Sheep Time. Isaac no longer flashes the previous frame."],
-    ["Aug 27, 2026", "Nova Craft listed (GitHub, jsDelivr 403s genizy). Duplicate rows removed. Pokemon Diamond & Pearl. Play area stays at least 320×240."],
-    ["Aug 27, 2026", "Henry Stickmin and other canvas-safe SWFs always listed. Only Isaac and Fancy Pants wait for WebGL2/WebGPU."],
-    ["Aug 27, 2026", "Ruffle 0.5.0. Isaac/Fancy Pants walls via wgpu. Loading overlay. FULL fills the Sites embed. Roblox joke stays."],
-    ["Aug 26, 2026", "Riddle School 1–5 + Transfers, FNAF 1, Half-Life, Granny, Bad Parenting, Ragdoll Archers."]
+    ["aug 28", "added themes + a log. sheep time is back. isaac kept jumping to the last frame so i stopped resizing it every 400ms like an idiot"],
+    ["aug 27", "nova craft is in. jsdelivr 403s genizy so that one goes through github. cleaned up the duplicate listings. pokemon is diamond and pearl now not those fake ds files"],
+    ["aug 27", "stickmin and the rest of the normal flash games show even without webgl2. isaac and fancy pants still need webgl2/webgpu or the rooms are just empty"],
+    ["aug 27", "ruffle 0.5. isaac walls work if your gpu is actually there. loading screen while stuff starts. FULL just fills the embed, sites wont do real fullscreen"],
+    ["aug 26", "riddle school 1-5 and transfers, fnaf 1, half life, granny, bad parenting, ragdoll archers"]
   ];
   var NAMES = {
     "achillies-1-fr.html": "Achilles 1",
@@ -576,7 +576,9 @@
     if (m) return { kind: "nds", url: m[1] };
     m = text.match(/swfUrl\s*:\s*["']([^"']+)["']/i);
     if (m) return { kind: "flash", url: m[1] };
-    m = text.match(/<param[^>]*name=["']movie["'][^>]*value=["']([^"']+\.swf)["']/i) ||
+    m = text.match(/<(?:ruffle-)?object[^>]*data=["']([^"']+\.swf)["']/i) ||
+      text.match(/<(?:ruffle-)?embed[^>]*src=["']([^"']+\.swf)["']/i) ||
+      text.match(/<param[^>]*name=["']movie["'][^>]*value=["']([^"']+\.swf)["']/i) ||
       text.match(/<embed[^>]*src=["']([^"']+\.swf)["']/i) ||
       text.match(/value=["'](https?:\/\/[^"']+\.swf)["']/i);
     if (m) return { kind: "flash", url: m[1] };
@@ -633,6 +635,7 @@
     html = html.replace(/\s*type=(["'])[0-9a-f]{6,}-text\/javascript\1/gi, "");
     html = html.replace(/<script[^>]*\beruda\b[^>]*><\/script>/gi, "");
     html = html.replace(/<script[^>]*>\s*eruda\.init\(\)\s*<\/script>/gi, "");
+    html = html.replace(/<script[^>]*src=["']\/vs\/[^"']+["'][^>]*>\s*<\/script>/gi, "");
     return html;
   }
 
@@ -640,6 +643,19 @@
     var m = String(html || "").match(/<base[^>]*href=["'](https?:\/\/(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)[^"']+)["']/i);
     if (m && /genizy/i.test(m[1])) return "";
     return m ? m[1] : "";
+  }
+
+  function cdnFrameOk(url) {
+    return /(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)/i.test(url || "") && !/\/gh\/genizy\//i.test(url || "");
+  }
+
+  function needsMimePatch(html, txt, url) {
+    var blob = String(html || "") + " " + String(txt || "") + " " + String(url || "");
+    return /raw\.githubusercontent\.com/i.test(blob) || /\/gh\/genizy\//i.test(blob) || /[0-9a-f]{8,}-text\/javascript/i.test(blob);
+  }
+
+  function needsLiveOrigin(html) {
+    return /createUnityInstance|unity-canvas|UnityLoader|\.unityweb|poki-sdk|emscripten|WebAssembly|unity-container|unity-loading-bar|loading-cover/i.test(html || "");
   }
 
   function githubMime() {
@@ -796,19 +812,28 @@
     return fit + html;
   }
 
+  function ruffleKind(swf) {
+    var blob = String(swf || "") + " " + (sel || "") + " " + ((games[sel] && games[sel].name) || "");
+    var isaac = /binding.?of.?isaa?c|the_binding_of_isaac|BiWrath/i.test(blob);
+    var fancy = /fancypants|fancy-pants|FPAWorld/i.test(blob);
+    var au = /achievement\s*unlocked|achievement-unlocked|achievementunlocked/i.test(blob);
+    return { isaac: isaac, fancy: fancy, au: au, gpu: isaac || fancy || !!(sel && GPU_FILE[sel]) };
+  }
+
   function ruffleConfigJson(swf) {
     var src = swf ? cleanUrl(swf) : "";
-    var isaac = /binding.?of.?isaa?c|the_binding_of_isaac|BiWrath/i.test(src);
+    var k = ruffleKind(src);
     return JSON.stringify({
       autoplay: "on",
       unmuteOverlay: "hidden",
-      letterbox: isaac ? "off" : "on",
-      backgroundColor: "#000000",
+      letterbox: k.isaac || k.au ? "off" : "on",
+      backgroundColor: k.au ? "#f4f0e0" : "#000000",
       publicPath: RUFFLE_DIR,
-      preferredRenderer: isaac && webgl.level >= 2 ? "wgpu-webgl" : ruffleRenderer,
+      preferredRenderer: k.gpu ? (webgl.level >= 2 ? "wgpu-webgl" : ruffleRenderer) : "canvas",
       quality: "high",
-      scale: isaac ? "exactFit" : "showAll",
-      forceScale: !isaac,
+      scale: k.isaac || k.au ? "exactFit" : "showAll",
+      forceScale: !k.isaac,
+      forceAlign: !!k.au,
       maxExecutionDuration: 90,
       allowNetworking: "all",
       base: src ? dirOf(src) : null
@@ -830,22 +855,32 @@
       quality: cfg.quality,
       scale: cfg.scale,
       forceScale: cfg.forceScale,
+      forceAlign: cfg.forceAlign,
       maxExecutionDuration: cfg.maxExecutionDuration,
       allowNetworking: cfg.allowNetworking
     };
-    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style id='embed-fit'>html,body,#g{margin:0;width:100%;height:100%;min-width:320px;min-height:240px;background:#000;overflow:hidden}ruffle-player{position:fixed;inset:0;width:100%;height:100%;min-width:320px;min-height:240px}</style>" +
+    var bg = cfg.backgroundColor || "#000";
+    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style id='embed-fit'>html,body,#g{margin:0;width:100%;height:100%;min-width:320px;min-height:240px;background:" + bg + ";overflow:hidden}ruffle-player{position:fixed;inset:0;width:100%;height:100%;min-width:320px;min-height:240px}ruffle-player canvas,ruffle-player svg{display:block!important;width:100%!important;height:100%!important;opacity:1!important;visibility:visible!important}</style>" +
       "<script>window.RufflePlayer={config:" + ruffleConfigJson(src) + "};<\/script>" +
       "<script src='" + RUFFLE + "'><\/script></head><body><div id='g'></div>" +
       "<script>(function(){function boot(){if(!window.RufflePlayer||!window.RufflePlayer.newest){setTimeout(boot,40);return;}" +
       "var w=window.RufflePlayer.newest();if(!w||!w.createPlayer){setTimeout(boot,40);return;}" +
-      "var p=w.createPlayer();p.style.position='fixed';p.style.inset='0';p.style.width='100%';p.style.height='100%';" +
+      "var p=w.createPlayer();p.style.position='fixed';p.style.inset='0';" +
       "var lx=0,ly=0;" +
-      "function sz(){var x=Math.max(320,window.innerWidth||320),y=Math.max(240,window.innerHeight||240);" +
-      "if(x===lx&&y===ly)return;lx=x;ly=y;" +
+      "function sz(){var x=Math.max(320,window.innerWidth||document.documentElement.clientWidth||320),y=Math.max(240,window.innerHeight||document.documentElement.clientHeight||240);" +
+      "var dead=p.clientWidth<32||p.clientHeight<32;" +
+      "if(!dead&&x===lx&&y===ly)return;lx=x;ly=y;" +
+      "p.style.width=x+'px';p.style.height=y+'px';p.style.minWidth='320px';p.style.minHeight='240px';" +
+      "p.setAttribute('width',x);p.setAttribute('height',y);" +
       "document.documentElement.style.width=x+'px';document.documentElement.style.height=y+'px';" +
       "if(document.body){document.body.style.width=x+'px';document.body.style.height=y+'px';}}" +
-      "sz();window.addEventListener('resize',sz);setInterval(sz,2000);" +
-      "document.getElementById('g').appendChild(p);p.load(" + JSON.stringify(opts) + ");}" +
+      "document.getElementById('g').appendChild(p);" +
+      "function kick(){lx=0;ly=0;sz();}" +
+      "var pl=p.load(" + JSON.stringify(opts) + ");" +
+      "if(pl&&pl.then)pl.then(kick,kick);else setTimeout(kick,80);" +
+      "p.addEventListener('loadeddata',kick);" +
+      "setTimeout(kick,250);setTimeout(kick,1000);" +
+      "sz();window.addEventListener('resize',sz);setInterval(sz,2000);}" +
       "boot();})();<\/script></body></html>";
   }
 
@@ -965,27 +1000,21 @@
         }
         if (info.kind === "flash" || /\.swf($|\?)/i.test(abs)) swf = abs;
       }
-      if (html && /createUnityInstance|unity-canvas|UnityLoader/i.test(html)) {
-        show(withBase(html, dirOf(mirrors(url)[0])));
-        return;
-      }
       if (swf && /\.swf($|\?)/i.test(swf) && !destBlocked(swf)) {
         show(ruffleDoc(swf));
         return;
       }
-      var pageDest = g.dest && /\.html($|\?)/i.test(g.dest);
-      if (pageDest) {
-        show(withBase(html, dirOf(mirrors(url)[0])));
+      var live = mirrors(url)[0];
+      if (g.kind !== "nds" && html && (needsLiveOrigin(html) || g.kind === "web")) {
+        if (cdnFrameOk(live) && !needsMimePatch(html, txt, live)) {
+          playUrl(live);
+          return;
+        }
+        show(withBase(html, ownCdnBase(html) || dirOf(live)));
         return;
       }
-      var cdnPage = ownCdnBase(html);
-      var needsFix = /[0-9a-f]{8,}-text\/javascript/i.test(txt);
-      if (cdnPage && !needsFix) {
-        playUrl(mirrors(url)[0]);
-        return;
-      }
-      if (html && /EJS_|poki-sdk|emscripten|type=["']module["']/i.test(html)) {
-        show(withBase(html, cdnPage || dirOf(mirrors(url)[0])));
+      if (html && /EJS_/i.test(html)) {
+        show(withBase(html, ownCdnBase(html) || dirOf(live)));
         return;
       }
     } catch (e) {}
