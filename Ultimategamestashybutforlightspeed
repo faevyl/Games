@@ -3,1279 +3,432 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Why Revived</title>
-<!--
-  One file. Inline CSS + JS only.
-  Google Sites: upload this file to Neocities, then Insert → Embed → Embed code
-  (not By URL — that shows a question mark). Paste why-revived-google-sites-embed.html.
-  Games load from jsDelivr / Bunny CDN (jsdelivr.b-cdn.net). Block list is the
-  ROM/SWF/JSON the page points at, not the HTML filename.
--->
+<title>Mirror Maze</title>
 <style>
-  :root, [data-theme="why"] {
-    --bg: #0c1014; --fg: #e8dcc8; --bar: #14181e; --line: #3a3226; --title: #f0e0c0;
-    --btn: #1a1814; --btn-fg: #c8b490; --accent: #c8a060; --muted: #7a6a52;
-    --side: #101418; --card: #171410; --card-line: #2a241c; --hover: #d8c4a0;
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  #c { display: block; width: 100%; height: 100%; cursor: crosshair; }
+  #ui {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    color: #c8e8ff; font-family: Consolas, "Courier New", monospace;
+    background: rgba(0, 4, 12, 0.78); pointer-events: none;
   }
-  [data-theme="void"] {
-    --bg: #08060e; --fg: #ddd0f0; --bar: #120e1a; --line: #3a2a52; --title: #efe6ff;
-    --btn: #16101f; --btn-fg: #b8a0d8; --accent: #9a70e0; --muted: #7a6a92;
-    --side: #0c0a14; --card: #14101c; --card-line: #2a2038; --hover: #d0c0ec;
+  #ui h1 {
+    font-weight: 400; letter-spacing: 14px; font-size: 42px; margin: 0 0 10px;
+    text-shadow: 0 0 28px #4aa8ff;
   }
-  [data-theme="arcade"] {
-    --bg: #12080a; --fg: #f0d4c8; --bar: #1c1012; --line: #5a2830; --title: #ffe8dc;
-    --btn: #221014; --btn-fg: #e09080; --accent: #e05040; --muted: #8a6058;
-    --side: #140c0e; --card: #1c1012; --card-line: #3a2024; --hover: #f0c4b8;
+  #ui p { margin: 6px 0; color: #6a8aaa; letter-spacing: 2px; font-size: 13px; }
+  #ui .big { color: #e8f4ff; font-size: 15px; margin-top: 18px; }
+  #hud {
+    position: fixed; left: 0; right: 0; bottom: 18px; text-align: center;
+    color: #4a6a88; font: 12px Consolas, monospace; letter-spacing: 1px;
+    pointer-events: none; display: none;
   }
-  [data-theme="moss"] {
-    --bg: #0c1410; --fg: #d4e4cc; --bar: #101814; --line: #2a4a32; --title: #e8f4dc;
-    --btn: #121a14; --btn-fg: #90b888; --accent: #6aaa60; --muted: #62805a;
-    --side: #0c1410; --card: #121a14; --card-line: #243828; --hover: #c8dcb8;
+  #cross {
+    position: fixed; top: 50%; left: 50%; width: 7px; height: 7px;
+    margin: -4px 0 0 -4px; border: 1px solid #9fd4ff; border-radius: 50%;
+    opacity: 0.4; pointer-events: none; display: none;
   }
-  [data-theme="ice"] {
-    --bg: #0a1018; --fg: #d0dce8; --bar: #101820; --line: #2a4058; --title: #e8f0f8;
-    --btn: #121820; --btn-fg: #90b0c8; --accent: #68a0d0; --muted: #6a8098;
-    --side: #0c1218; --card: #121820; --card-line: #243040; --hover: #c8d8e8;
+  #err {
+    position: fixed; top: 10px; left: 10px; color: #ff6b6b;
+    font: 12px Consolas, monospace; white-space: pre-wrap; display: none;
   }
-  [data-theme="paper"] {
-    --bg: #e8dcc8; --fg: #2a241c; --bar: #f0e6d4; --line: #c8b490; --title: #1a1410;
-    --btn: #f4ead8; --btn-fg: #5a4030; --accent: #8a5030; --muted: #7a6a52;
-    --side: #efe4d2; --card: #f6ecda; --card-line: #d8c4a0; --hover: #3a3020;
-  }
-  html, body { margin: 0; width: 100%; height: 100%; min-height: 100%; background: var(--bg); color: var(--fg); font-family: Georgia, serif; }
-  body { display: flex; flex-direction: column; overflow: hidden; }
-  #bar {
-    flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-    padding: 10px 12px; background: var(--bar); border-bottom: 1px solid var(--line);
-  }
-  #bar h1 { margin: 0 8px 0 0; font-size: 16px; font-weight: 400; letter-spacing: 2px; color: var(--title); }
-  #bar input {
-    flex: 1 1 160px; min-width: 120px; background: var(--btn); color: var(--title);
-    border: 1px solid var(--line); padding: 6px 8px; font: 13px Georgia, serif;
-  }
-  #bar button, #tabs button, #themes button {
-    background: var(--btn); color: var(--btn-fg); border: 1px solid var(--line);
-    font: 12px Georgia, serif; padding: 6px 10px; cursor: pointer;
-  }
-  #bar button.on, #tabs button.on, #themes button.on { background: var(--card); color: var(--title); border-color: var(--accent); }
-  #stat { font-size: 11px; color: var(--muted); white-space: nowrap; }
-  #main { flex: 1 1 auto; display: flex; min-height: 240px; height: 100%; }
-  #side {
-    width: 280px; max-width: 42%; overflow: auto; background: var(--side);
-    border-right: 1px solid var(--line); flex: 0 0 auto;
-  }
-  #tools { position: sticky; top: 0; z-index: 1; background: var(--side); padding: 8px 8px 4px; }
-  #tabs { display: flex; gap: 4px; margin-bottom: 8px; }
-  #q {
-    display: block; width: 100%; box-sizing: border-box; background: var(--btn); color: var(--title);
-    border: 1px solid var(--line); padding: 8px 10px; font: 13px Georgia, serif;
-  }
-  #list { padding: 0 8px 12px; }
-  .g {
-    display: block; width: 100%; text-align: left; margin: 0 0 4px;
-    background: var(--card); color: var(--hover); border: 1px solid var(--card-line);
-    font: 13px Georgia, serif; padding: 8px 10px; cursor: pointer;
-  }
-  .g:hover, .g.sel { border-color: var(--accent); color: var(--title); }
-  .g b { display: block; font-weight: 400; color: var(--title); }
-  .g i { font-style: normal; font-size: 11px; color: var(--muted); }
-  #play { flex: 1 1 auto; position: relative; background: #000; min-width: 280px; min-height: 240px; }
-  #play iframe {
-    position: absolute; inset: 0; width: 100%; height: 100%; min-width: 280px; min-height: 240px;
-    border: 0; background: #000; display: block;
-  }
-  body.playing #play { min-width: 320px; }
-  #empty {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    color: var(--muted); text-align: center; padding: 24px; pointer-events: none;
-  }
-  #empty.hide { display: none; }
-  #load {
-    position: absolute; inset: 0; z-index: 8; display: none;
-    flex-direction: column; align-items: center; justify-content: center;
-    background: var(--bg); color: var(--title); text-align: center; padding: 24px;
-  }
-  #load.on { display: flex; }
-  #spin {
-    width: 26px; height: 26px; margin-bottom: 14px;
-    border: 2px solid var(--line); border-top-color: var(--accent);
-    border-radius: 50%; animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  #load b { display: block; font-weight: 400; letter-spacing: 3px; font-size: 13px; color: var(--accent); margin-bottom: 8px; }
-  #load p { margin: 0; color: var(--muted); font: 13px Georgia, serif; }
-  #note {
-    position: fixed; right: 16px; bottom: 16px; z-index: 50; display: none;
-    width: 320px; max-width: calc(100% - 24px); padding: 12px 32px 12px 14px;
-    background: var(--card); color: var(--title); border: 1px solid var(--accent);
-    font: 13px/1.4 Georgia, serif;
-  }
-  #note.on { display: block; }
-  #note b { display: block; font-weight: 400; letter-spacing: 1px; color: var(--btn-fg); font-size: 11px; margin-bottom: 4px; }
-  #note p { margin: 0; color: var(--title); }
-  #note .x, #sheetX {
-    position: absolute; top: 6px; right: 8px; border: 0; background: transparent;
-    color: var(--muted); font: 16px Georgia, serif; cursor: pointer; padding: 2px 6px;
-  }
-  #sheet {
-    display: none; position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.55);
-    align-items: center; justify-content: center; padding: 16px;
-  }
-  #sheet.on { display: flex; }
-  #sheetBox {
-    position: relative; width: 420px; max-width: 100%; max-height: min(70vh, 520px);
-    overflow: auto; background: var(--bar); color: var(--fg); border: 1px solid var(--accent);
-    padding: 16px 16px 12px;
-  }
-  #sheetBox h2 { margin: 0 28px 12px 0; font-size: 13px; font-weight: 400; letter-spacing: 2px; color: var(--accent); }
-  .log { margin: 0 0 12px; padding: 0 0 10px; border-bottom: 1px solid var(--line); }
-  .log:last-child { border-bottom: 0; margin-bottom: 0; }
-  .log b { display: block; font-weight: 400; font-size: 11px; letter-spacing: 1px; color: var(--btn-fg); margin-bottom: 4px; }
-  .log p { margin: 0; font: 13px/1.45 Georgia, serif; color: var(--fg); }
-  #themes { display: flex; flex-wrap: wrap; gap: 6px; }
-  body.max #side, body.playing.tight #side { display: none; }
-  #play:fullscreen, #play:-webkit-full-screen,
-  html:fullscreen, html:-webkit-full-screen { width: 100%; height: 100%; background: #000; }
+  #map { display: none !important; }
 </style>
 </head>
 <body>
-<div id="bar">
-  <h1>WHY REVIVED</h1>
-  <button type="button" id="back">LIST</button>
-  <button type="button" id="full">FULL</button>
-  <button type="button" id="logBtn">LOG</button>
-  <button type="button" id="themeBtn">THEME</button>
-  <span id="stat">loading…</span>
+<canvas id="c"></canvas>
+<canvas id="map" width="148" height="148"></canvas>
+<div id="cross"></div>
+<div id="ui">
+  <h1>MIRROR MAZE</h1>
+  <p>DON'T TRUST WHAT YOU SEE</p>
+  <p class="big">CLICK TO START</p>
+  <p>WASD MOVE &nbsp; MOUSE LOOK &nbsp; SHIFT SPRINT</p>
+  <p>R NEW MAZE &nbsp;·&nbsp; FIND THE WARM LIGHT</p>
 </div>
-<div id="main">
-  <div id="side">
-    <div id="tools">
-      <div id="tabs">
-        <button type="button" class="on" data-tab="all">ALL</button>
-        <button type="button" data-tab="flash">RUFFLE</button>
-        <button type="button" data-tab="nds">DS</button>
-        <button type="button" data-tab="web">HTML</button>
-      </div>
-      <input id="q" type="search" placeholder="Search games" autocomplete="off">
-    </div>
-    <div id="list"></div>
-  </div>
-  <div id="play">
-    <div id="empty">Pick a game.</div>
-    <iframe id="frame" title="game" allow="autoplay; fullscreen; gamepad; clipboard-write; xr-spatial-tracking" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true"></iframe>
-    <div id="load" class="on">
-      <div id="spin"></div>
-      <b>WHY REVIVED</b>
-      <p id="loadMsg">loading games…</p>
-    </div>
-  </div>
-</div>
-<div id="note">
-  <b>Why Revived</b>
-  <p id="noteMsg">yk i cant load roblox, sorry...</p>
-  <button type="button" class="x" id="noteX" aria-label="close">×</button>
-</div>
-<div id="sheet">
-  <div id="sheetBox">
-    <button type="button" id="sheetX" aria-label="close">×</button>
-    <h2 id="sheetTitle">UPDATE LOG</h2>
-    <div id="logPane"></div>
-    <div id="themePane" style="display:none">
-      <div id="themes"></div>
-    </div>
-  </div>
-</div>
+<div id="hud">every corridor is a reflection · find the warm light</div>
+<div id="err"></div>
 <script>
 (function () {
-  var CDN = "https://cdn.jsdelivr.net/gh/";
-  var BUNNY = "https://jsdelivr.b-cdn.net/gh/";
-  var LITE = "Craf1ed/lite-assets@main/";
-  var SERAPH = "a456pur/seraph@ae2fcc6d6a9cd051654fcc0519080db1f79cf2a7/";
-  var RUFFLE = "https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.5.0/ruffle.js";
-  var RUFFLE_DIR = "https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.5.0/";
-  var EJS = CDN + "a456pur/seraph@81f551ca0aa8e3d6018d32d8ac5904ac9bc78f76/storage/emulatorjs/data";
-  var API = "https://api.github.com/repos/Craf1ed/lite-assets/contents/";
-  var THEMES = [
-    ["why", "Why"],
-    ["void", "Void"],
-    ["arcade", "Arcade"],
-    ["moss", "Moss"],
-    ["ice", "Ice"],
-    ["paper", "Paper"]
-  ];
-  var LOGS = [
-    ["aug 28", "added themes + a log. sheep time is back. isaac kept jumping to the last frame so i stopped resizing it every 400ms like an idiot"],
-    ["aug 27", "nova craft is in. jsdelivr 403s genizy so that one goes through github. cleaned up the duplicate listings. pokemon is diamond and pearl now not those fake ds files"],
-    ["aug 27", "stickmin and the rest of the normal flash games show even without webgl2. isaac and fancy pants still need webgl2/webgpu or the rooms are just empty"],
-    ["aug 27", "ruffle 0.5. isaac walls work if your gpu is actually there. loading screen while stuff starts. FULL just fills the embed, sites wont do real fullscreen"],
-    ["aug 26", "riddle school 1-5 and transfers, fnaf 1, half life, granny, bad parenting, ragdoll archers"]
-  ];
-  var NAMES = {
-    "achillies-1-fr.html": "Achilles 1",
-    "achillies-2.html": "Achilles 2",
-    "dad-nm-e.html": "Dad n Me",
-    "meat-boy-flash.html": "Super Meat Boy (Flash)",
-    "portal-flash.html": "Portal (Flash)",
-    "ruffle.html": "Ruffle Player",
-    "60-seconds-burger-run.html": "60 Second Burger Run",
-    "cookie-clicker.html": "Cookie Clicker",
-    "granny.html": "Granny",
-    "granny-2-2.html": "Granny 2",
-    "riddle-school.html": "Riddle School",
-    "riddle-school-2.html": "Riddle School 2",
-    "riddle-school-3.html": "Riddle School 3",
-    "riddle-school-4.html": "Riddle School 4",
-    "riddle-school-5": "Riddle School 5",
-    "seraph/fnaf": "FNAF",
-    "halflife.html": "Half-Life",
-    "seraph/halflife": "Half-Life",
-    "seraph/half-life": "Half-Life",
-    "riddle-transfer.html": "Riddle Transfer",
-    "riddle-transfer-2.html": "Riddle Transfer 2",
-    "gun-mayhem.html": "Gun Mayhem",
-    "gun-mayhem-2.html": "Gun Mayhem 2",
-    "gun-mayhem-redux.html": "Gun Mayhem Redux",
-    "ragdoll-archers/index.html": "Ragdoll Archers",
-    "bad-parenting.html": "Bad Parenting",
-    "roblox.html": "Roblox",
-    "infinite-craft.html": "Nova Craft",
-    "drive-mad.html": "Drive Mad",
-    "escape-road.html": "Escape Road",
-    "pokemon-diamond.html": "Pokemon Diamond",
-    "pokemon-pearl.html": "Pokemon Pearl",
-    "super-mario-64-ds.html": "Super Mario 64 DS",
-    "mario-kart-ds.html": "Mario Kart DS",
-    "mario-party-ds.html": "Mario Party DS",
-    "animal-crossing-wild-world.html": "Animal Crossing: Wild World",
-    "seraph/thebindingofisaac": "The Binding of Isaac",
-    "binding-of-isacc-sheep-time.html": "The Binding of Isaac: Sheep Time",
-    "seraph/fancypantsadventure": "Fancy Pants Adventure",
-    "seraph/fancypantsadventure2": "Fancy Pants Adventure 2",
-    "seraph/fancypantsadventure3": "Fancy Pants Adventure 3",
-    "seraph/themehotel": "Theme Hotel",
-    "seraph/breakingthebank": "Breaking the Bank",
-    "seraph/escapingtheprison": "Escaping the Prison",
-    "seraph/stealingthediamond": "Stealing the Diamond",
-    "seraph/infiltratingtheairship": "Infiltrating the Airship",
-    "seraph/fleeingthecomplex": "Fleeing the Complex",
-    "seraph/learntofly": "Learn to Fly",
-    "seraph/learntofly2": "Learn to Fly 2",
-    "seraph/learntofly3": "Learn to Fly 3",
-    "seraph/worldshardestgame": "World's Hardest Game",
-    "seraph/thisistheonlylevel": "This Is the Only Level",
-    "seraph/electricman2": "Electric Man 2",
-    "seraph/linerider": "Line Rider",
-    "seraph/chibiknight": "Chibi Knight",
-    "seraph/supermarioflash": "Super Mario Flash"
+  var errEl = document.getElementById("err");
+  window.onerror = function (msg, src, line) {
+    errEl.style.display = "block";
+    errEl.textContent = msg + "\n" + src + ":" + line;
   };
-  var SEED = [
-    ["achillies-1-fr.html", "flash"],
-    ["achillies-2.html", "flash"],
-    ["60-seconds-burger-run.html", "flash"],
-    ["ruffle.html", "flash"],
-    ["happy-wheels.html", "flash"],
-    ["super-mario-63.html", "flash"],
-    ["meat-boy-flash.html", "flash"],
-    ["portal-flash.html", "flash"],
-    ["impossible-quiz.html", "flash"],
-    ["achievement-unlocked.html", "flash"],
-    ["achievement-unlocked-2.html", "flash"],
-    ["age-of-war.html", "flash"],
-    ["age-of-war-2.html", "flash"],
-    ["alien-hominid.html", "flash"],
-    ["bloons.html", "flash"],
-    ["bloons-2.html", "flash"],
-    ["bloons-td-1.html", "flash"],
-    ["bloons-td-2.html", "flash"],
-    ["bloons-td-3.html", "flash"],
-    ["bloons-td-4.html", "flash"],
-    ["bloons-td-5.html", "flash"],
-    ["cactus-mccoy.html", "flash"],
-    ["cactus-mccoy-2.html", "flash"],
-    ["dad-nm-e.html", "flash"],
-    ["defend-your-castle.html", "flash"],
-    ["riddle-school.html", "flash"],
-    ["riddle-school-2.html", "flash"],
-    ["riddle-school-3.html", "flash"],
-    ["riddle-school-4.html", "flash"],
-    ["riddle-school-5", "flash", CDN + SERAPH + "games/riddleschool/riddleschool5/index.html"],
-    ["riddle-transfer.html", "flash"],
-    ["riddle-transfer-2.html", "flash"],
-    ["seraph/breakingthebank", "flash", CDN + SERAPH + "games/breakingthebank/breaking-the-bank.swf"],
-    ["seraph/escapingtheprison", "flash", CDN + SERAPH + "games/escapingtheprison/escapingtheprison.swf"],
-    ["seraph/stealingthediamond", "flash", CDN + SERAPH + "games/stealingthediamond/stealingthediamond.swf"],
-    ["seraph/infiltratingtheairship", "flash", CDN + SERAPH + "games/infiltratingtheairship/infiltratingtheairship.swf"],
-    ["seraph/fleeingthecomplex", "flash", CDN + SERAPH + "games/fleeingthecomplex/5.swf"],
-    ["seraph/themehotel", "flash", CDN + SERAPH + "games/themehotel/themehotel.swf"],
-    ["seraph/learntofly", "flash", CDN + SERAPH + "games/learntofly/ltf.swf"],
-    ["seraph/learntofly2", "flash", CDN + SERAPH + "games/learntofly2/learn-to-fly-2.swf"],
-    ["seraph/learntofly3", "flash", CDN + SERAPH + "games/learntofly3/learn-to-fly-3.swf"],
-    ["seraph/worldshardestgame", "flash", CDN + SERAPH + "games/worldshardestgame/whg.swf"],
-    ["seraph/thisistheonlylevel", "flash", CDN + SERAPH + "games/thisistheonlylevel/thisistheonlylevel.swf"],
-    ["seraph/electricman2", "flash", CDN + SERAPH + "games/electricman2/electric-man-2.swf"],
-    ["seraph/linerider", "flash", CDN + SERAPH + "games/linerider/line-rider.swf"],
-    ["seraph/chibiknight", "flash", CDN + SERAPH + "games/chibiknight/chibiknight.swf"],
-    ["seraph/supermarioflash", "flash", CDN + SERAPH + "games/supermarioflash/super-mario-flash.swf"],
-    ["gun-mayhem.html", "flash"],
-    ["gun-mayhem-2.html", "web"],
-    ["gun-mayhem-redux.html", "flash"],
-    ["ragdoll-archers/index.html", "web", CDN + LITE + "ragdoll-archers/index.html"],
-    ["bad-parenting.html", "web"],
-    ["roblox.html", "web"],
-    ["cookie-clicker.html", "web"],
-    ["granny.html", "web"],
-    ["granny-2-2.html", "web"],
-    ["infinite-craft.html", "web"],
-    ["drive-mad.html", "web"],
-    ["escape-road.html", "web"],
-    ["seraph/fnaf", "web", CDN + SERAPH + "games/fnaf/index.html"],
-    ["halflife.html", "web"],
-    ["mario-kart-ds.html", "nds"],
-    ["mario-party-ds.html", "nds"],
-    ["super-mario-64-ds.html", "nds"],
-    ["animal-crossing-wild-world.html", "nds"],
-    ["cooking-mama-2.html", "nds"],
-    ["cooking-mama-3.html", "nds"],
-    ["pokemon-diamond.html", "nds", CDN + "bubbls/ugss@c1ee7c5c6ee36389455d85874293c1e35c569e37/Pokemon%20-%20Diamond%20Version%20(USA)%20(Rev%205)/Pokemon%20-%20Diamond%20Version%20(USA)%20(Rev%205).nds"],
-    ["pokemon-pearl.html", "nds", CDN + "bubbls/ugss@adb3ef7b1ed9dcefb25f4ea6e2ad1aa30a27c599/Pokemon%20-%20Pearl%20Version%20(USA)%20(Rev%205)/Pokemon%20-%20Pearl%20Version%20(USA)%20(Rev%205).nds"]
-  ];
-  var BLOCK_FILE = {
-    "cooking-mama.html": 1,
-    "10-minutes-till-dawn.html": 1,
-    "granny-2.html": 1,
-    "achievement-unlocked-3.html": 1,
-    "little-alchemy-2": 1,
-    "little-alchemy-2/index.html": 1,
-    "infinitecraft": 1,
-    "seraph/infinitecraft": 1,
-    "seraph/halflife": 1,
-    "seraph/half-life": 1,
-    "pokemon-mone-vol-ve-ds-fd-gs-dfs.html": 1,
-    "pokemon-moneme-ra-lds-ea-glass.html": 1,
-    "pokes-cor-che-dsi-lv-er.html": 1,
-    "fancy-pants-adventure.html": 1,
-    "fancy-pants-adventure-2.html": 1,
-    "fancy-pants-adventure-3.html": 1,
-    "learn-to-fly.html": 1,
-    "learn-to-fly-2.html": 1,
-    "learn-to-fly-3.html": 1,
-    "electric-man-2.html": 1,
-    "chi-bik-night.html": 1,
-    "line-rider.html": 1,
-    "bloons-pp-1.html": 1,
-    "bloons-pp-2.html": 1,
-    "bloons-pp-3.html": 1,
-    "bloons-pp-4.html": 1,
-    "bloons-pp-5.html": 1
-  };
-  // Only SWFs that stay blank without wgpu (BitmapData.draw). Everything else is always listed.
-  var GPU_SWF = [
-    ["seraph/thebindingofisaac", "the_binding_of_isaac.swf"],
-    ["binding-of-isacc-sheep-time.html", "https://cdn.jsdelivr.net/gh/RobiFet/CMinterview@a4017231eca9f2173ad7ec0e63b01e4786b4ad6b/web/src/BiWrath.swf"],
-    ["seraph/fancypantsadventure", "fancypantsadventure.swf"],
-    ["seraph/fancypantsadventure2", "fancy-pants-adventure2.swf"],
-    ["seraph/fancypantsadventure3", "FPAWorld3.swf"]
-  ];
-  var GPU_FILE = {};
-  GPU_SWF.forEach(function (row) { GPU_FILE[row[0]] = 1; });
-  var games = {};
-  var tab = "all";
-  var sel = null;
-  var query = "";
-  var webgl = (function () {
-    try {
-      var c = document.createElement("canvas");
-      var gl2 = c.getContext("webgl2");
-      if (gl2) {
-        gl2.getParameter(gl2.VERSION);
-        return { ok: true, level: 2 };
-      }
-      var gl = c.getContext("webgl") || c.getContext("experimental-webgl");
-      if (gl) {
-        gl.getParameter(gl.VERSION);
-        return { ok: true, level: 1 };
-      }
-    } catch (e) {}
-    return { ok: false, level: 0 };
-  })();
-  var hasWebgpu = (function () {
-    try { return !!(navigator.gpu && navigator.gpu.requestAdapter); } catch (e) { return false; }
-  })();
-  // Canvas cannot draw BitmapData (Isaac walls, Fancy Pants rooms). Prefer WebGPU, then wgpu-webgl.
-  // Never pick canvas as the preferred backend.
-  var ruffleRenderer = hasWebgpu ? "webgpu" : "wgpu-webgl";
-  var gpuPlay = webgl.level >= 2 || hasWebgpu;
-  var framed = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();
-  var bootGame = (function () {
-    var blob = String(location.hash || "") + "&" + String(location.search || "");
-    var m = blob.match(/[#&?]play=([^&]*)/);
-    if (!m) return "";
-    try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; }
-  })();
 
-  function titleOf(file) {
-    if (NAMES[file]) return NAMES[file];
-    return file.replace(/^seraph\//, "").replace(/\/index\.html$/i, "").replace(/\.html$/i, "").replace(/-/g, " ").replace(/\b\w/g, function (c) {
-      return c.toUpperCase();
-    });
-  }
-
-  function parseRepo(url) {
-    url = String(url || "").replace(/&amp;/g, "&");
-    var m = url.match(/^https?:\/\/(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)\/gh\/([^\/]+)\/([^@\/]+)@([^\/]+)\/(.+)$/i);
-    if (m) return { user: m[1], repo: m[2], ref: m[3], path: m[4] };
-    m = url.match(/^https?:\/\/(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)\/gh\/([^\/]+)\/([^@\/]+)\/(.+)$/i);
-    if (m) return { user: m[1], repo: m[2], ref: "main", path: m[3] };
-    m = url.match(/^https?:\/\/raw\.githubusercontent\.com\/([^\/]+)\/([^\/]+)\/(?:refs\/heads\/)?([^\/]+)\/(.+)$/i);
-    if (m) return { user: m[1], repo: m[2], ref: m[3], path: m[4] };
-    m = url.match(/^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/(?:raw|blob)\/([^\/]+)\/(.+)$/i);
-    if (m) return { user: m[1], repo: m[2], ref: m[3], path: m[4] };
-    m = url.match(/^https?:\/\/(?:rawcdn\.|cdn\.)?githack\.com\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)$/i);
-    if (m) return { user: m[1], repo: m[2], ref: m[3], path: m[4] };
-    return null;
-  }
-
-  function githubRaw(p) {
-    return "https://raw.githubusercontent.com/" + p.user + "/" + p.repo + "/" + p.ref + "/" + p.path;
-  }
-
-  function cdnUrl(p) {
-    return CDN + p.user + "/" + p.repo + "@" + p.ref + "/" + p.path;
-  }
-
-  function bunnyUrl(p) {
-    return BUNNY + p.user + "/" + p.repo + "@" + p.ref + "/" + p.path;
-  }
-
-  // githack is blocked. GitHub is not. jsDelivr 403s genizy (Nova Craft / some Unity).
-  function cleanUrl(url) {
-    url = String(url || "").replace(/&amp;/g, "&");
-    if (/githack\.com/i.test(url) || /(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)\/gh\/genizy\//i.test(url)) {
-      var p = parseRepo(url);
-      if (p) return githubRaw(p);
-    }
-    return url;
-  }
-
-  function mirrors(url) {
-    var cleaned = cleanUrl(url);
-    var p = parseRepo(cleaned);
-    var out = [];
-    function push(u) {
-      if (u && !/githack\.com/i.test(u) && out.indexOf(u) === -1) out.push(u);
-    }
-    if (p) {
-      if (/genizy/i.test(p.user)) push(githubRaw(p));
-      else {
-        push(cdnUrl(p));
-        push(bunnyUrl(p));
-        push(githubRaw(p));
-      }
-    } else {
-      push(cleaned);
-    }
-    return out;
-  }
-
-  function destBlocked(u) {
-    var s = String(u || "");
-    try { s = decodeURIComponent(s.replace(/\+/g, " ")); } catch (e) {}
-    s = s.toLowerCase();
-    if (/10minutestilldawn|10 minutes till dawn/.test(s)) return true;
-    if (/cooking\s*mama/.test(s) && /\(usa\)\.zip|%20\(usa\)\.zip/.test(String(u).toLowerCase()) && !/mama\s*2|mama%202/.test(s)) return true;
-    if (/\/fnaf-2\b|\/fnaf-3\b|\/fnaf2\b|\/fnaf3\b/.test(s)) return true;
-    if (/achievement-unlocked-3\.swf|achievementunlocked3/.test(s)) return true;
-    if (/\binfinitecraft\b/.test(s) && !/infinite-craft\.html/.test(s)) return true;
-    return false;
-  }
-
-  function folderSite(file) {
-    var p = String(file || "");
-    if (!p) return true;
-    if (/ragdoll-archers|riddle-school-5|(^|\/)fnaf$|(^|\/)half-?life|thebindingofisaac|binding-?of-?isaac|fancypants|themehotel|escapingtheprison|stealingthediamond|infiltratingtheairship|fleeingthecomplex|breakingthebank|learntofly|worldshardestgame|thisistheonlylevel|electricman|linerider|chibiknight|supermarioflash|supersmashflash/i.test(p)) return false;
-    if (p.indexOf("/") !== -1) return true;
-    if (/^seraph\//i.test(p)) return true;
-    return false;
-  }
-
-  function normTitle(s) {
-    return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
-  }
-
-  function destFile(u) {
-    var s = String(u || "").split("?")[0].split("#")[0];
-    try { s = decodeURIComponent(s); } catch (e) {}
-    return s.split("/").pop().toLowerCase();
-  }
-
-  function add(file, kind, dest) {
-    if (!file || BLOCK_FILE[file] || BLOCK_FILE[file.replace(/\/index\.html$/i, "")] || games[file]) return;
-    if (!gpuPlay && GPU_FILE[file]) return;
-    if (folderSite(file)) return;
-    dest = dest ? cleanUrl(dest) : "";
-    if (dest && destBlocked(dest)) return;
-    var name = titleOf(file);
-    var nt = normTitle(name);
-    var df = destFile(dest);
-    var k, g;
-    for (k in games) {
-      g = games[k];
-      if (normTitle(g.name) === nt) return;
-      if (df && destFile(g.dest) === df && /\.(swf|nds|gba|zip)$/i.test(df)) return;
-    }
-    games[file] = { file: file, kind: kind, name: name, dest: dest };
-  }
-
-  SEED.forEach(function (row) { add(row[0], row[1], row[2]); });
-  if (gpuPlay) {
-    GPU_SWF.forEach(function (row) {
-      var dest = /^https?:/i.test(row[1]) ? row[1] : CDN + SERAPH + "games/" + row[0].slice(7) + "/" + row[1];
-      add(row[0], "flash", dest);
-    });
-  }
-
-  function kindLabel(kind) {
-    if (kind === "nds") return "Nintendo DS";
-    if (kind === "web") return "HTML5";
-    return "Ruffle Flash";
-  }
-
-  function listGames() {
-    var rows = Object.keys(games).map(function (k) { return games[k]; });
-    rows.sort(function (a, b) {
-      if (a.file.indexOf("achillies") === 0 && b.file.indexOf("achillies") !== 0) return -1;
-      if (b.file.indexOf("achillies") === 0 && a.file.indexOf("achillies") !== 0) return 1;
-      return a.name.localeCompare(b.name);
-    });
-    var q = query.trim().toLowerCase();
-    return rows.filter(function (g) {
-      if (tab !== "all" && g.kind !== tab) return false;
-      if (!q) return true;
-      return (g.name + " " + g.file + " " + g.kind).toLowerCase().indexOf(q) !== -1;
-    });
-  }
-
-  function render() {
-    var rows = listGames();
-    var flashN = 0, dsN = 0, webN = 0, k;
-    for (k in games) {
-      if (games[k].kind === "flash") flashN++;
-      else if (games[k].kind === "nds") dsN++;
-      else webN++;
-    }
-    document.getElementById("stat").textContent = flashN + " ruffle · " + dsN + " ds · " + webN + " html · " +
-      (hasWebgpu ? "webgpu" : (webgl.level >= 2 ? "webgl2" : (webgl.level === 1 ? "webgl" : "no gpu")));
-    document.getElementById("list").innerHTML = rows.map(function (g) {
-      return '<button type="button" class="g' + (sel === g.file ? " sel" : "") + '" data-file="' + g.file.replace(/"/g, "") + '">' +
-        "<b>" + g.name.replace(/</g, "") + "</b><i>" + kindLabel(g.kind) + "</i></button>";
-    }).join("") || '<div style="padding:12px;color:#7a6a52">No matches.</div>';
-  }
-
-  function extractDest(text) {
-    var m = text.match(/EJS_gameUrl\s*=\s*["']([^"']+)["']/i);
-    if (m) return { kind: "nds", url: m[1] };
-    m = text.match(/swfUrl\s*:\s*["']([^"']+)["']/i);
-    if (m) return { kind: "flash", url: m[1] };
-    m = text.match(/<(?:ruffle-)?object[^>]*data=["']([^"']+\.swf)["']/i) ||
-      text.match(/<(?:ruffle-)?embed[^>]*src=["']([^"']+\.swf)["']/i) ||
-      text.match(/<param[^>]*name=["']movie["'][^>]*value=["']([^"']+\.swf)["']/i) ||
-      text.match(/<embed[^>]*src=["']([^"']+\.swf)["']/i) ||
-      text.match(/value=["'](https?:\/\/[^"']+\.swf)["']/i);
-    if (m) return { kind: "flash", url: m[1] };
-    m = text.match(/player\.load\(\s*["']([^"']+\.swf)["']/i);
-    if (m) return { kind: "flash", url: m[1] };
-    m = text.match(/UnityLoader\.instantiate\s*\([^,]+,\s*["']([^"']+)["']/i);
-    if (m) return { kind: "web", url: m[1] };
-    m = text.match(/<iframe[^>]*src=["']([^"']+)["']/i);
-    if (m) return { kind: "web", url: m[1] };
-    m = text.match(/buildUrl\s*=\s*["'](https?:\/\/[^"']+)["']/i);
-    if (m) return { kind: "web", url: m[1] };
-    return null;
-  }
-
-  function innerHtml(text) {
-    var m = text.match(/<!\[CDATA\[([\s\S]*?)\]\]>/i);
-    if (m) return m[1];
-    var start = text.search(/<html[\s>]/i);
-    if (start >= 0) {
-      var html = text.slice(start);
-      return html.replace(/\]\]>\s*<\/Content>[\s\S]*$/i, "");
-    }
-    return text;
-  }
-
-  function dirOf(url) {
-    return String(url || "").replace(/[#?].*$/, "").replace(/[^/]+$/, "");
-  }
-
-  function rewriteRootUrls(html, base) {
-    if (!base) return html;
-    var root = String(base).replace(/\/?$/, "/");
-    html = html.replace(/(\s(?:src|href|poster)=["'])\/(?!\/)/gi, "$1" + root);
-    html = html.replace(/(url\(\s*['"]?)\/(?!\/)/gi, "$1" + root);
-    return html;
-  }
-
-  function pathPatcher(base) {
-    var root = String(base || "").replace(/\/?$/, "");
-    if (!root) return "";
-    return "<script>(function(B){function f(u){if(typeof u!=='string')return u;if(u.charAt(0)==='/'&&u.charAt(1)!=='/')return B+u;return u;}" +
-      "var F=window.fetch;if(F)window.fetch=function(i,n){if(typeof i==='string')i=f(i);else if(i&&typeof Request==='function'&&i instanceof Request)i=new Request(f(i.url),i);return F.call(this,i,n);};" +
-      "var X=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){if(typeof u==='string')arguments[1]=f(u);return X.apply(this,arguments);};" +
-      "function hook(proto,prop){try{var d=Object.getOwnPropertyDescriptor(proto,prop);if(!d||!d.set)return;Object.defineProperty(proto,prop,{configurable:true,enumerable:d.enumerable,get:d.get,set:function(v){d.set.call(this,f(v));}});}catch(e){}}" +
-      "if(window.HTMLImageElement)hook(HTMLImageElement.prototype,'src');" +
-      "if(window.HTMLScriptElement)hook(HTMLScriptElement.prototype,'src');" +
-      "if(window.HTMLLinkElement)hook(HTMLLinkElement.prototype,'href');" +
-      "var SA=Element.prototype.setAttribute;Element.prototype.setAttribute=function(n,v){if((n==='src'||n==='href'||n==='poster')&&typeof v==='string')v=f(v);return SA.call(this,n,v);};" +
-      "})(" + JSON.stringify(root) + ");<\/script>";
-  }
-
-  function fixGameHtml(html) {
-    html = String(html || "");
-    html = html.replace(/\s*type=(["'])[0-9a-f]{6,}-text\/javascript\1/gi, "");
-    html = html.replace(/<script[^>]*\beruda\b[^>]*><\/script>/gi, "");
-    html = html.replace(/<script[^>]*>\s*eruda\.init\(\)\s*<\/script>/gi, "");
-    html = html.replace(/<script[^>]*src=["']\/vs\/[^"']+["'][^>]*>\s*<\/script>/gi, "");
-    return html;
-  }
-
-  function ownCdnBase(html) {
-    var m = String(html || "").match(/<base[^>]*href=["'](https?:\/\/(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)[^"']+)["']/i);
-    if (m && /genizy/i.test(m[1])) return "";
-    return m ? m[1] : "";
-  }
-
-  function cdnFrameOk(url) {
-    return /(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)/i.test(url || "") && !/\/gh\/genizy\//i.test(url || "");
-  }
-
-  function needsMimePatch(html, txt, url) {
-    var blob = String(html || "") + " " + String(txt || "") + " " + String(url || "");
-    return /raw\.githubusercontent\.com/i.test(blob) || /\/gh\/genizy\//i.test(blob) || /[0-9a-f]{8,}-text\/javascript/i.test(blob);
-  }
-
-  function needsLiveOrigin(html) {
-    return /createUnityInstance|unity-canvas|UnityLoader|\.unityweb|poki-sdk|emscripten|WebAssembly|unity-container|unity-loading-bar|loading-cover/i.test(html || "");
-  }
-
-  function githubMime() {
-    return "<script>(function(){" +
-      "function mime(u){u=String(u||'').split('?')[0].split('#')[0];" +
-      "if(/\\.wasm$/i.test(u))return'application/wasm';" +
-      "if(/\\.m?js$/i.test(u))return'application/javascript';" +
-      "if(/\\.json$/i.test(u))return'application/json';" +
-      "if(/\\.css$/i.test(u))return'text/css';" +
-      "if(/\\.(data|mem|bundle|unityweb)$/i.test(u))return'application/octet-stream';return'';}" +
-      "function abs(u){try{return new URL(String(u||''),document.baseURI).href;}catch(e){return String(u||'');}}" +
-      "function gh(u){return /raw\\.githubusercontent\\.com/i.test(u);}" +
-      "var F=window.fetch;" +
-      "window.fetch=function(i,n){var u=abs(typeof i==='string'?i:(i&&i.url)||'');return F.apply(this,arguments).then(function(r){var t=gh(u)&&mime(u);if(!t)return r;return r.arrayBuffer().then(function(b){return new Response(b,{status:r.status,statusText:r.statusText,headers:{'Content-Type':t}});});});};" +
-      "var XO=XMLHttpRequest.prototype.open;" +
-      "XMLHttpRequest.prototype.open=function(m,u){var a=abs(u),t=gh(a)&&mime(a);if(t){try{this.overrideMimeType(t);}catch(e){}}return XO.apply(this,arguments);};" +
-      "function hook(proto,prop){try{var d=Object.getOwnPropertyDescriptor(proto,prop);if(!d||!d.set)return;" +
-      "Object.defineProperty(proto,prop,{configurable:true,enumerable:d.enumerable,get:d.get,set:function(v){var el=this,a=abs(v),t=gh(a)&&mime(a);" +
-      "if(prop==='src'&&t){F(a).then(function(r){return r.arrayBuffer();}).then(function(b){d.set.call(el,URL.createObjectURL(new Blob([b],{type:t})));}).catch(function(){d.set.call(el,v);});return;}d.set.call(el,v);}});}catch(e){}}" +
-      "if(window.HTMLScriptElement)hook(HTMLScriptElement.prototype,'src');" +
-      "var SA=Element.prototype.setAttribute;" +
-      "Element.prototype.setAttribute=function(n,v){if((n==='src'||n==='href')&&typeof v==='string'){var a=abs(v),t=gh(a)&&mime(a);if(n==='src'&&t){var el=this;F(a).then(function(r){return r.arrayBuffer();}).then(function(b){SA.call(el,n,URL.createObjectURL(new Blob([b],{type:t})));}).catch(function(){SA.call(el,n,v);});return;}}return SA.apply(this,arguments);};" +
-      "})();<\/script>";
-  }
-
-  function bootGithubModules(html) {
-    html = String(html || "");
-    html = html.replace(/<script([^>]*)\btype=["']module["']([^>]*)><\/script>/gi, function (tag) {
-      var src = (tag.match(/\ssrc=["']([^"']+)["']/i) || [])[1];
-      if (!src || !/raw\.githubusercontent\.com/i.test(src)) return tag;
-      return "<script>(function(){var s=" + JSON.stringify(src) + ";fetch(s).then(function(r){return r.text()}).then(function(t){t=t.replace(/import\\.meta\\.url/g,JSON.stringify(s));var e=document.createElement('script');e.type='module';e.src=URL.createObjectURL(new Blob([t],{type:'application/javascript'}));document.head.appendChild(e)})})();<\/script>";
-    });
-    html = html.replace(/<link([^>]*rel=["']stylesheet["'][^>]*)>/gi, function (tag) {
-      var href = (tag.match(/\shref=["']([^"']+)["']/i) || [])[1];
-      if (!href || !/raw\.githubusercontent\.com/i.test(href)) return tag;
-      return "<script>(function(){var s=" + JSON.stringify(href) + ";fetch(s).then(function(r){return r.text()}).then(function(t){var b=s.replace(/[^/]+$/,'');t=t.replace(/url\\(\\s*(['\"]?)(?!\\/\\/|https?:|data:)/gi,'url($1'+b);var e=document.createElement('style');e.textContent=t;document.head.appendChild(e)})})();<\/script>";
-    });
-    return html;
-  }
-
-  function withBase(html, base) {
-    html = fixGameHtml(html);
-    html = html.replace(/https?:\/\/(?:rawcdn\.|cdn\.)?githack\.com\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^"'\s]+)/gi, function (_, a, b, c, d) {
-      return "https://raw.githubusercontent.com/" + a + "/" + b + "/" + c + "/" + d;
-    });
-    html = html.replace(/https?:\/\/(?:cdn\.jsdelivr\.net|jsdelivr\.b-cdn\.net|fastly\.jsdelivr\.net)\/gh\/genizy\/[^"'\s]+/gi, function (u) {
-      return cleanUrl(u);
-    });
-    html = html.replace(/https?:\/\/unpkg\.com\/@ruffle-rs\/ruffle[^"']*/gi, RUFFLE);
-    html = html.replace(/https?:\/\/cdn\.jsdelivr\.net\/npm\/@ruffle-rs\/ruffle[^"']*/gi, RUFFLE);
-    html = html.replace(/(src\s*=\s*["'])[^"']*ruffle\/ruffle\.js["']/gi, "$1" + RUFFLE + '"');
-    html = html.replace(/(['"])\.\.\/\.\.\/\.\.\/storage\/ruffle\/ruffle\.js\1/gi, "$1" + RUFFLE + "$1");
-    if (ownCdnBase(html)) return html;
-    var gh = /raw\.githubusercontent\.com/i.test(html);
-    html = rewriteRootUrls(html, base);
-    var patch = (gh ? githubMime() : "") + (gh ? "" : pathPatcher(base));
-    if (base && !/<base[\s>]/i.test(html)) {
-      if (/<head[^>]*>/i.test(html)) html = html.replace(/<head([^>]*)>/i, "<head$1><base href=\"" + base + "\">" + patch);
-      else if (/<html[^>]*>/i.test(html)) html = html.replace(/<html([^>]*)>/i, "<html$1><head><base href=\"" + base + "\">" + patch + "</head>");
-      else html = "<base href=\"" + base + "\">" + patch + html;
-    } else if (patch) {
-      if (/<head[^>]*>/i.test(html)) html = html.replace(/<head([^>]*)>/i, "<head$1>" + patch);
-      else html = patch + html;
-    }
-    if (gh || /raw\.githubusercontent\.com/i.test(html)) html = bootGithubModules(html);
-    return html;
-  }
-
-  function classify(text) {
-    if (destBlocked(text)) return null;
-    var dest = extractDest(text);
-    if (dest) {
-      dest.url = cleanUrl(dest.url);
-      if (destBlocked(dest.url)) return null;
-      return dest;
-    }
-    if (/ruffle\.js|createPlayer\(|swfUrl/i.test(text) && /\.swf/i.test(text)) return { kind: "flash", url: "" };
-    if (/EJS_core\s*=\s*["']nds["']/i.test(text)) return { kind: "nds", url: "" };
-    if (/createUnityInstance|UnityLoader|unity-canvas|poki-sdk|emscripten|productName["']:\s*["']Granny/i.test(text)) return { kind: "web", url: "" };
-    if (/bobydob\/JSEngine|cc\.xml/i.test(text)) return { kind: "web", url: "" };
-    if (/little.?alchemy|infinite.?craft|nova craft|drive.?mad|escape.?road|id=["']game-container["']/i.test(text)) return { kind: "web", url: "" };
-    return null;
-  }
-
-  function viewport() {
-    var vv = window.visualViewport;
-    var w, h;
-    if (vv && vv.height) {
-      w = Math.round(vv.width);
-      h = Math.round(vv.height);
-    } else {
-      w = window.innerWidth || document.documentElement.clientWidth || 0;
-      h = window.innerHeight || document.documentElement.clientHeight || 0;
-    }
-    return { w: Math.max(320, w), h: Math.max(240, h) };
-  }
-
-  var lastLayout = "";
-  function layout() {
-    var vp = viewport();
-    var bar = document.getElementById("bar");
-    var main = document.getElementById("main");
-    var play = document.getElementById("play");
-    var frame = document.getElementById("frame");
-    var barH = Math.max(36, bar ? bar.offsetHeight : 44);
-    var tight = vp.w < 700 || (document.body.classList.contains("playing") && vp.w < 900);
-    document.body.classList.toggle("tight", tight);
-    var h = Math.max(240, vp.h - barH);
-    var playW = Math.max(280, vp.w - (!tight && !document.body.classList.contains("max") ? 280 : 0));
-    var key = playW + "x" + h + ":" + vp.w + "x" + vp.h + ":" + tight + ":" + document.body.className;
-    if (key === lastLayout) return;
-    lastLayout = key;
-    document.documentElement.style.height = vp.h + "px";
-    document.body.style.width = vp.w + "px";
-    document.body.style.height = vp.h + "px";
-    main.style.height = h + "px";
-    play.style.width = playW + "px";
-    play.style.height = h + "px";
-    play.style.minWidth = "280px";
-    play.style.minHeight = "240px";
-    frame.style.width = playW + "px";
-    frame.style.height = h + "px";
-    frame.style.minWidth = "280px";
-    frame.style.minHeight = "240px";
-  }
-
-  function injectFit(html) {
-    html = String(html || "");
-    if (/id=['"]embed-fit['"]/.test(html)) return html;
-    var shell = /ruffle|unity-canvas|createUnityInstance|EJS_|createPlayer|\.swf/i.test(html);
-    var fit = "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
-      "<style id='embed-fit'>html,body{margin:0!important;width:100%!important;height:100%!important;min-height:100%!important;background:#000" +
-      (shell ? ";overflow:hidden!important" : "") + "}" +
-      "ruffle-player,ruffle-embed,ruffle-object{display:block!important;width:100%!important;height:100%!important}" +
-      "ruffle-player canvas{image-rendering:auto}" +
-      (shell ? "#game,#unity-canvas,#unityContainer{width:100%!important;height:100%!important}" : "") +
-      ".unsupported-container,.unsupported-text{display:none!important}</style>" +
-      "<script id='embed-fit-js'>(function(){" +
-      "window.RufflePlayer=window.RufflePlayer||{};" +
-      "window.RufflePlayer.config=Object.assign(" + ruffleConfigJson() + ",window.RufflePlayer.config||{});" +
-      "var lw=0,lh=0;" +
-      "function sz(){var w=Math.max(320,window.innerWidth||document.documentElement.clientWidth||320),h=Math.max(240,window.innerHeight||document.documentElement.clientHeight||240);" +
-      "if(w===lw&&h===lh)return;lw=w;lh=h;" +
-      "document.documentElement.style.width=w+'px';document.documentElement.style.height=h+'px';" +
-      "if(document.body){document.body.style.width=w+'px';document.body.style.height=h+'px';document.body.style.margin='0';}" +
-      "var n=document.querySelectorAll('ruffle-player,ruffle-embed,ruffle-object,#unity-canvas,#unityContainer');" +
-      "for(var i=0;i<n.length;i++){n[i].style.width=w+'px';n[i].style.height=h+'px';n[i].style.maxWidth='none';n[i].style.maxHeight='none';}" +
-      "if(window.EJS_core||window.EJS_player){var g=document.getElementById('game');if(g){g.style.width=w+'px';g.style.height=h+'px';}}" +
-      "window.dispatchEvent(new Event('resize'));}" +
-      "setInterval(sz,2000);window.addEventListener('resize',sz);" +
-      "if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',sz);else sz();" +
-      "})();<\/script>";
-    if (/<head[^>]*>/i.test(html)) return html.replace(/<head([^>]*)>/i, "<head$1>" + fit);
-    return fit + html;
-  }
-
-  function ruffleKind(swf) {
-    var blob = String(swf || "") + " " + (sel || "") + " " + ((games[sel] && games[sel].name) || "");
-    var isaac = /binding.?of.?isaa?c|the_binding_of_isaac|BiWrath/i.test(blob);
-    var fancy = /fancypants|fancy-pants|FPAWorld/i.test(blob);
-    var au = /achievement\s*unlocked|achievement-unlocked|achievementunlocked/i.test(blob);
-    return { isaac: isaac, fancy: fancy, au: au, gpu: isaac || fancy || !!(sel && GPU_FILE[sel]) };
-  }
-
-  function ruffleConfigJson(swf) {
-    var src = swf ? cleanUrl(swf) : "";
-    var k = ruffleKind(src);
-    return JSON.stringify({
-      autoplay: "on",
-      unmuteOverlay: "hidden",
-      letterbox: k.isaac || k.au ? "off" : "on",
-      backgroundColor: k.au ? "#f4f0e0" : "#000000",
-      publicPath: RUFFLE_DIR,
-      preferredRenderer: k.gpu ? (webgl.level >= 2 ? "wgpu-webgl" : ruffleRenderer) : "canvas",
-      quality: "high",
-      scale: k.isaac || k.au ? "exactFit" : "showAll",
-      forceScale: !k.isaac,
-      forceAlign: !!k.au,
-      maxExecutionDuration: 90,
-      allowNetworking: "all",
-      base: src ? dirOf(src) : null
-    });
-  }
-
-  function ruffleDoc(swf) {
-    var src = cleanUrl(swf);
-    var cfg = JSON.parse(ruffleConfigJson(src));
-    var opts = {
-      url: src,
-      base: dirOf(src),
-      autoplay: cfg.autoplay,
-      unmuteOverlay: cfg.unmuteOverlay,
-      letterbox: cfg.letterbox,
-      backgroundColor: cfg.backgroundColor,
-      publicPath: cfg.publicPath,
-      preferredRenderer: cfg.preferredRenderer,
-      quality: cfg.quality,
-      scale: cfg.scale,
-      forceScale: cfg.forceScale,
-      forceAlign: cfg.forceAlign,
-      maxExecutionDuration: cfg.maxExecutionDuration,
-      allowNetworking: cfg.allowNetworking
-    };
-    var bg = cfg.backgroundColor || "#000";
-    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style id='embed-fit'>html,body,#g{margin:0;width:100%;height:100%;min-width:320px;min-height:240px;background:" + bg + ";overflow:hidden}ruffle-player{position:fixed;inset:0;width:100%;height:100%;min-width:320px;min-height:240px}ruffle-player canvas,ruffle-player svg{display:block!important;width:100%!important;height:100%!important;opacity:1!important;visibility:visible!important}</style>" +
-      "<script>window.RufflePlayer={config:" + ruffleConfigJson(src) + "};<\/script>" +
-      "<script src='" + RUFFLE + "'><\/script></head><body><div id='g'></div>" +
-      "<script>(function(){function boot(){if(!window.RufflePlayer||!window.RufflePlayer.newest){setTimeout(boot,40);return;}" +
-      "var w=window.RufflePlayer.newest();if(!w||!w.createPlayer){setTimeout(boot,40);return;}" +
-      "var p=w.createPlayer();p.style.position='fixed';p.style.inset='0';" +
-      "var lx=0,ly=0;" +
-      "function sz(){var x=Math.max(320,window.innerWidth||document.documentElement.clientWidth||320),y=Math.max(240,window.innerHeight||document.documentElement.clientHeight||240);" +
-      "var dead=p.clientWidth<32||p.clientHeight<32;" +
-      "if(!dead&&x===lx&&y===ly)return;lx=x;ly=y;" +
-      "p.style.width=x+'px';p.style.height=y+'px';p.style.minWidth='320px';p.style.minHeight='240px';" +
-      "p.setAttribute('width',x);p.setAttribute('height',y);" +
-      "document.documentElement.style.width=x+'px';document.documentElement.style.height=y+'px';" +
-      "if(document.body){document.body.style.width=x+'px';document.body.style.height=y+'px';}}" +
-      "document.getElementById('g').appendChild(p);" +
-      "function kick(){lx=0;ly=0;sz();}" +
-      "var pl=p.load(" + JSON.stringify(opts) + ");" +
-      "if(pl&&pl.then)pl.then(kick,kick);else setTimeout(kick,80);" +
-      "p.addEventListener('loadeddata',kick);" +
-      "setTimeout(kick,250);setTimeout(kick,1000);" +
-      "sz();window.addEventListener('resize',sz);setInterval(sz,2000);}" +
-      "boot();})();<\/script></body></html>";
-  }
-
-  function ndsDoc(rom) {
-    var url = cleanUrl(rom);
-    return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>html,body,#game{margin:0;width:100%;height:100%;min-width:320px;min-height:240px;background:#000;overflow:hidden}#game{position:fixed;inset:0}</style></head><body>" +
-      "<div id='game'></div><script>EJS_player='#game';EJS_core='nds';EJS_color='#000000';EJS_startOnLoaded=true;" +
-      "EJS_pathtodata=" + JSON.stringify(EJS) + ";EJS_gameUrl=" + JSON.stringify(url) + ";<\/script>" +
-      "<script src='" + EJS + "/loader.js'><\/script></body></html>";
-  }
-
-  var loadToken = 0;
-  var loadTimer = 0;
-  function setLoad(on, msg) {
-    var el = document.getElementById("load");
-    var t = document.getElementById("loadMsg");
-    if (t && msg) t.textContent = msg;
-    el.className = on ? "on" : "";
-    clearTimeout(loadTimer);
-    if (on) {
-      loadToken++;
-      loadTimer = setTimeout(function () { el.className = ""; }, 20000);
-    }
-  }
-  function hideLoad() {
-    clearTimeout(loadTimer);
-    document.getElementById("load").className = "";
-  }
-
-  function show(html) {
-    layout();
-    var frame = document.getElementById("frame");
-    var tok = loadToken;
-    frame.removeAttribute("src");
-    var skipFit = !!(ownCdnBase(html) || /createUnityInstance|poki-sdk|emscripten|type=["']module["']|nova-craft|raw\.githubusercontent\.com/i.test(html));
-    frame.srcdoc = skipFit ? html : injectFit(html);
-    frame.onload = function () {
-      layout();
-      try { frame.contentWindow.dispatchEvent(new Event("resize")); } catch (e) {}
-      if (tok === loadToken) setTimeout(hideLoad, 500);
-    };
-  }
-
-  function playUrl(url) {
-    layout();
-    var frame = document.getElementById("frame");
-    var tok = loadToken;
-    frame.removeAttribute("srcdoc");
-    frame.onload = function () {
-      layout();
-      if (tok === loadToken) setTimeout(hideLoad, 500);
-    };
-    frame.src = mirrors(url)[0] || cleanUrl(url);
-  }
-
-  async function fetchText(url) {
-    var list = mirrors(url);
-    var i, err;
-    for (i = 0; i < list.length; i++) {
-      try {
-        var res = await fetch(list[i]);
-        if (res.ok) return await res.text();
-        err = res.status;
-      } catch (e) { err = e; }
-    }
-    throw err;
-  }
-
-  function liteUrl(file) {
-    return CDN + LITE + file;
-  }
-
-  function pageUrl(g) {
-    if (g.dest && /\.html($|\?)/i.test(g.dest)) return g.dest;
-    if (g.file.indexOf("http") === 0) return g.file;
-    if (g.file.indexOf("seraph/") === 0) return CDN + SERAPH + "games/" + g.file.slice(7) + "/index.html";
-    return liteUrl(g.file);
-  }
-
-  var noteTimer = 0;
-  function chromeNote(msg) {
-    var el = document.getElementById("note");
-    document.getElementById("noteMsg").textContent = msg;
-    el.className = "on";
-    clearTimeout(noteTimer);
-    noteTimer = setTimeout(function () { el.className = ""; }, 6000);
-  }
-
-  async function play(file) {
-    var g = games[file];
-    if (!g) return;
-    var blob = (g.file + " " + g.name + " " + (g.dest || "")).toLowerCase();
-    if (/roblox/.test(blob)) {
-      chromeNote("yk i cant load roblox, sorry...");
-      return;
-    }
-    sel = file;
-    document.body.classList.add("playing");
-    document.getElementById("empty").className = "hide";
-    setLoad(true, "loading " + g.name + "…");
-    layout();
-    render();
-    var url = pageUrl(g);
-    try {
-      var txt = await fetchText(url);
-      var html = fixGameHtml(innerHtml(txt));
-      var info = classify(txt);
-      var swf = "";
-      if (info && info.url) {
-        var abs = info.url;
-        if (!/^https?:/i.test(abs)) abs = dirOf(mirrors(url)[0]) + abs.replace(/^\.\//, "");
-        abs = cleanUrl(abs);
-        var pageDest = g.dest && /\.html($|\?)/i.test(g.dest);
-        if (!destBlocked(abs) && !pageDest) {
-          g.dest = abs;
-          if (info.kind) g.kind = info.kind;
-        }
-        if (info.kind === "flash" || /\.swf($|\?)/i.test(abs)) swf = abs;
-      }
-      if (swf && /\.swf($|\?)/i.test(swf) && !destBlocked(swf)) {
-        show(ruffleDoc(swf));
-        return;
-      }
-      var live = mirrors(url)[0];
-      if (g.kind !== "nds" && html && (needsLiveOrigin(html) || g.kind === "web")) {
-        if (cdnFrameOk(live) && !needsMimePatch(html, txt, live)) {
-          playUrl(live);
-          return;
-        }
-        show(withBase(html, ownCdnBase(html) || dirOf(live)));
-        return;
-      }
-      if (html && /EJS_/i.test(html)) {
-        show(withBase(html, ownCdnBase(html) || dirOf(live)));
-        return;
-      }
-    } catch (e) {}
-    var dest = g.dest;
-    if (dest && destBlocked(dest)) { hideLoad(); return; }
-    if (dest && /\.swf/i.test(dest)) {
-      show(ruffleDoc(dest));
-      return;
-    }
-    if (g.kind === "nds" && dest) {
-      show(ndsDoc(dest));
-      return;
-    }
-    if (dest && /\.json$/i.test(dest)) {
-      dest = dest.replace(/\/Build\/[^/]+\.json$/i, "/index.html");
-      if (destBlocked(dest)) { hideLoad(); return; }
-      url = dest;
-    }
-    playUrl(url);
-  }
-
-  function saveCache() {
-    try {
-      localStorage.setItem("liteFlashDs11", JSON.stringify({ t: Date.now(), games: games }));
-    } catch (e) {}
-  }
-
-  function loadCache() {
-    try {
-      var raw = localStorage.getItem("liteFlashDs11");
-      if (!raw) return;
-      var data = JSON.parse(raw);
-      if (!data || !data.games || Date.now() - data.t > 7 * 24 * 60 * 60 * 1000) return;
-      Object.keys(data.games).forEach(function (file) {
-        var g = data.games[file];
-        add(file, g.kind, g.dest);
-      });
-    } catch (e) {}
-  }
-
-  async function scanLite() {
-    var files;
-    try {
-      var res = await fetch(API);
-      files = await res.json();
-      if (!Array.isArray(files)) files = [];
-    } catch (e) {
-      return;
-    }
-    var queue = files.filter(function (f) {
-      if (!f || f.type !== "file" || !/\.html$/i.test(f.name) || BLOCK_FILE[f.name]) return false;
-      var n = f.name.toLowerCase();
-      var sz = f.size || 0;
-      if (n.indexOf("gba") !== -1 || n.indexOf("nes") !== -1 || n.indexOf("n64") !== -1) return false;
-      if (/flash|ruffle|swf|achill|riddle|cookie|granny|burger|fnaf|gun-mayhem|ragdoll|drive-mad|escape-road|parenting/.test(n)) return true;
-      if (/(^|-)(ds|dsi|nds)\.html$/.test(n) || /mario-kart-ds|mario-party-ds|super-mario-64-ds|animal-crossing-wild-world/.test(n)) return true;
-      if (sz >= 900 && sz <= 1600) return true;
-      if (sz >= 2400 && sz <= 4500) return true;
-      return false;
-    });
-    var i = 0;
-    async function worker() {
-      while (i < queue.length) {
-        var f = queue[i++];
-        if (games[f.name]) continue;
-        try {
-          var txt = await fetchText(liteUrl(f.name));
-          var info = classify(txt);
-          if (info) {
-            add(f.name, info.kind, info.url);
-            render();
-          }
-        } catch (e) {}
-      }
-    }
-    await Promise.all([worker(), worker(), worker(), worker()]);
-  }
-
-  async function scanSeraph() {
+  var canvas = document.getElementById("c");
+  var gl = canvas.getContext("webgl2", { antialias: false, alpha: false });
+  if (!gl) {
+    errEl.style.display = "block";
+    errEl.textContent = "WebGL2 is required for the raytraced maze.";
     return;
   }
 
-  async function scan() {
-    setLoad(true, "loading games…");
-    document.getElementById("stat").textContent = "scanning…";
-    await scanLite();
-    await scanSeraph();
-    saveCache();
-    render();
-    bootPlay();
-    if (!sel) hideLoad();
-  }
+  var N = 32;
+  var maze = new Uint8Array(N * N);
+  var start = [1.5, 1.5];
+  var exitC = [N - 2.5, N - 2.5];
 
-  document.getElementById("noteX").addEventListener("click", function () {
-    document.getElementById("note").className = "";
-  });
-  document.getElementById("list").addEventListener("click", function (e) {
-    var b = e.target.closest("[data-file]");
-    if (b) play(b.getAttribute("data-file"));
-  });
-  document.getElementById("tabs").addEventListener("click", function (e) {
-    var b = e.target.closest("[data-tab]");
-    if (!b) return;
-    tab = b.getAttribute("data-tab");
-    [].forEach.call(document.querySelectorAll("#tabs button"), function (x) {
-      x.className = x === b ? "on" : "";
-    });
-    render();
-  });
-  document.getElementById("q").addEventListener("input", function () {
-    query = this.value;
-    render();
-  });
-  document.getElementById("back").addEventListener("click", function () {
-    var frame = document.getElementById("frame");
-    frame.srcdoc = "";
-    frame.src = "about:blank";
-    document.body.classList.remove("playing");
-    document.getElementById("empty").className = "";
-    hideLoad();
-    sel = null;
-    exitMax();
-    closeSheet();
-    layout();
-    render();
-  });
-
-  function fsEl() {
-    return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
-  }
-  function canNativeFs() {
-    if (document.fullscreenEnabled || document.webkitFullscreenEnabled || document.msFullscreenEnabled) return true;
-    try {
-      if (document.featurePolicy && document.featurePolicy.allowsFeature) return document.featurePolicy.allowsFeature("fullscreen");
-    } catch (e) {}
-    return false;
-  }
-  function askFs(el) {
-    if (!el) return Promise.reject();
-    try {
-      if (el.requestFullscreen) return el.requestFullscreen();
-      if (el.webkitRequestFullscreen) {
-        el.webkitRequestFullscreen();
-        return Promise.resolve();
+  function genMaze() {
+    var i, x, y;
+    for (i = 0; i < N * N; i++) maze[i] = 255;
+    function id(cx, cy) { return cy * N + cx; }
+    function carve(cx, cy) {
+      maze[id(cx, cy)] = 0;
+      var dirs = [[2, 0], [-2, 0], [0, 2], [0, -2]];
+      var k, j, t, nx, ny;
+      for (k = 0; k < 4; k++) {
+        j = k + (Math.random() * (4 - k) | 0);
+        t = dirs[k]; dirs[k] = dirs[j]; dirs[j] = t;
       }
-      if (el.msRequestFullscreen) {
-        el.msRequestFullscreen();
-        return Promise.resolve();
+      for (k = 0; k < 4; k++) {
+        nx = cx + dirs[k][0];
+        ny = cy + dirs[k][1];
+        if (nx > 0 && ny > 0 && nx < N - 1 && ny < N - 1 && maze[id(nx, ny)]) {
+          maze[id(cx + dirs[k][0] / 2, cy + dirs[k][1] / 2)] = 0;
+          carve(nx, ny);
+        }
       }
-    } catch (e) {
-      return Promise.reject(e);
     }
-    return Promise.reject();
-  }
-  function exitFs() {
-    try {
-      if (document.exitFullscreen) return document.exitFullscreen();
-      if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
-      if (document.msExitFullscreen) return document.msExitFullscreen();
-    } catch (e) {}
-  }
-  function enterMax() {
-    document.body.classList.add("max");
-    document.getElementById("full").className = "on";
-    layout();
-  }
-  function exitMax() {
-    document.body.classList.remove("max");
-    document.getElementById("full").className = "";
-    layout();
-  }
-  function goFull() {
-    if (fsEl()) {
-      exitFs();
-      exitMax();
-      return;
+    carve(1, 1);
+    for (i = 0; i < 18; i++) {
+      x = 2 + (Math.random() * (N - 4) | 0);
+      y = 2 + (Math.random() * (N - 4) | 0);
+      if (!maze[id(x, y)] || Math.random() < 0.35) maze[id(x, y)] = 0;
     }
-    if (document.body.classList.contains("max")) {
-      exitMax();
-      return;
+    start = [1.5, 1.5];
+    var best = 0, bx = N - 2, by = N - 2;
+    for (y = 1; y < N - 1; y++) {
+      for (x = 1; x < N - 1; x++) {
+        if (maze[id(x, y)]) continue;
+        var d = (x - 1) * (x - 1) + (y - 1) * (y - 1);
+        if (d > best) { best = d; bx = x; by = y; }
+      }
     }
-    if (!canNativeFs()) {
-      enterMax();
-      return;
-    }
-    var box = document.getElementById("play");
-    var p = askFs(box);
-    if (p && p.then) {
-      p.then(function () {
-        if (fsEl()) { document.getElementById("full").className = "on"; layout(); }
-        else enterMax();
-      }).catch(function () { enterMax(); });
-    } else {
-      setTimeout(function () {
-        if (fsEl()) { document.getElementById("full").className = "on"; layout(); }
-        else enterMax();
-      }, 80);
-    }
-  }
-  function onFsChange() {
-    if (!fsEl()) document.getElementById("full").className = document.body.classList.contains("max") ? "on" : "";
-    else document.getElementById("full").className = "on";
-    layout();
-  }
-  function bootPlay() {
-    if (bootGame && games[bootGame] && !sel) play(bootGame);
+    exitC = [bx + 0.5, by + 0.5];
   }
 
-  document.getElementById("full").addEventListener("click", goFull);
-  document.addEventListener("fullscreenchange", onFsChange);
-  document.addEventListener("webkitfullscreenchange", onFsChange);
+  var vs = `#version 300 es
+in vec2 aPos;
+void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }`;
 
-  function applyTheme(id) {
-    var ok = false, i;
-    for (i = 0; i < THEMES.length; i++) if (THEMES[i][0] === id) ok = true;
-    if (!ok) id = "why";
-    document.documentElement.setAttribute("data-theme", id);
-    try { localStorage.setItem("whyRevivedTheme", id); } catch (e) {}
-    [].forEach.call(document.querySelectorAll("#themes button"), function (b) {
-      b.className = b.getAttribute("data-theme") === id ? "on" : "";
-    });
+  var fs = `#version 300 es
+precision highp float;
+uniform sampler2D uMaze;
+uniform vec2 uSize;
+uniform vec3 uCam;
+uniform vec3 uFwd, uRight, uUp;
+uniform vec2 uExit;
+uniform float uTime;
+uniform vec2 uRes;
+out vec4 fragColor;
+
+bool occupied(ivec2 c) {
+  if (c.x < 0 || c.y < 0 || c.x >= int(uSize.x) || c.y >= int(uSize.y)) return true;
+  return texelFetch(uMaze, c, 0).r > 0.5;
+}
+
+const float CEIL_Y = 2.35;
+const float HIT_EPS = 4e-4;
+
+vec3 sky(vec3 rd) {
+  return vec3(0.006, 0.007, 0.01);
+}
+
+vec3 ceilEmit(vec3 p) {
+  vec2 f = fract(p.xz) - 0.5;
+  float lamp = exp(-90.0 * dot(f, f));
+  float gold = exp(-6.5 * dot(p.xz - uExit, p.xz - uExit));
+  return vec3(0.92, 0.96, 1.0) * lamp * 5.5 + vec3(1.0, 0.55, 0.12) * gold * 9.0;
+}
+
+float nextGridT(float s0, float ds, float t0) {
+  if (abs(ds) < 1e-12) return 1e30;
+  float s = s0 + ds * t0;
+  float plane = ds > 0.0 ? floor(s + 1e-5) + 1.0 : ceil(s - 1e-5) - 1.0;
+  return (plane - s0) / ds;
+}
+
+bool traceHit(vec3 ro, vec3 rd, out vec3 pHit, out vec3 nHit, out int kind) {
+  nHit = vec3(0.0);
+  pHit = ro;
+  kind = 0;
+
+  ivec2 c0 = ivec2(floor(ro.xz));
+  if (occupied(c0)) {
+    vec2 f = fract(ro.xz);
+    if (min(f.x, 1.0 - f.x) < min(f.y, 1.0 - f.y))
+      ro.x += (f.x < 0.5 ? -1.0 : 1.0) * (min(f.x, 1.0 - f.x) + 0.004);
+    else
+      ro.z += (f.y < 0.5 ? -1.0 : 1.0) * (min(f.y, 1.0 - f.y) + 0.004);
   }
-  function openSheet(kind) {
-    document.getElementById("sheet").className = "on";
-    document.getElementById("sheetTitle").textContent = kind === "theme" ? "THEMES" : "UPDATE LOG";
-    document.getElementById("logPane").style.display = kind === "theme" ? "none" : "block";
-    document.getElementById("themePane").style.display = kind === "theme" ? "block" : "none";
-    document.getElementById("logBtn").className = kind === "log" ? "on" : "";
-    document.getElementById("themeBtn").className = kind === "theme" ? "on" : "";
+
+  float tFloor = rd.y < -1e-8 ? (0.0 - ro.y) / rd.y : 1e30;
+  float tCeil = rd.y > 1e-8 ? (CEIL_Y - ro.y) / rd.y : 1e30;
+  float tCursor = 0.0;
+
+  for (int i = 0; i < 80; i++) {
+    float tX = nextGridT(ro.x, rd.x, tCursor + HIT_EPS);
+    float tZ = nextGridT(ro.z, rd.z, tCursor + HIT_EPS);
+    float tPlane = min(tX, tZ);
+    float tHit = min(tPlane, min(tFloor, tCeil));
+    if (tHit > 48.0) break;
+
+    if (tFloor > HIT_EPS && tFloor <= tHit + 1e-6) {
+      kind = 1;
+      nHit = vec3(0.0, 1.0, 0.0);
+      pHit = ro + rd * tFloor;
+      pHit.y = 0.0;
+      return true;
+    }
+    if (tCeil > HIT_EPS && tCeil <= tHit + 1e-6) {
+      kind = 2;
+      nHit = vec3(0.0, -1.0, 0.0);
+      pHit = ro + rd * tCeil;
+      pHit.y = CEIL_Y;
+      return true;
+    }
+
+    bool xSide = tX <= tZ;
+    float t = tPlane;
+    vec3 before = ro + rd * (t - 1e-4);
+    vec3 after = ro + rd * (t + 1e-4);
+    ivec2 from = ivec2(floor(before.xz));
+    ivec2 to = ivec2(floor(after.xz));
+    ivec2 toX = ivec2(to.x, from.y);
+    ivec2 toZ = ivec2(from.x, to.y);
+    bool hitX = !occupied(from) && occupied(toX);
+    bool hitZ = !occupied(from) && occupied(toZ);
+    if (!hitX && !hitZ && !occupied(from) && occupied(to)) {
+      if (xSide) hitX = true;
+      else hitZ = true;
+    }
+    if (hitX || hitZ) {
+      kind = 3;
+      if (hitX && (!hitZ || xSide)) {
+        float plane = rd.x > 0.0 ? float(toX.x) : float(from.x);
+        nHit = vec3(rd.x > 0.0 ? -1.0 : 1.0, 0.0, 0.0);
+        pHit = ro + rd * ((plane - ro.x) / rd.x);
+        pHit.x = plane;
+      } else {
+        float plane = rd.z > 0.0 ? float(toZ.y) : float(from.y);
+        nHit = vec3(0.0, 0.0, rd.z > 0.0 ? -1.0 : 1.0);
+        pHit = ro + rd * ((plane - ro.z) / rd.z);
+        pHit.z = plane;
+      }
+      return true;
+    }
+    tCursor = t;
   }
-  function closeSheet() {
-    document.getElementById("sheet").className = "";
-    document.getElementById("logBtn").className = "";
-    document.getElementById("themeBtn").className = "";
+  return false;
+}
+
+vec3 shade(vec3 ro, vec3 rd) {
+  vec3 col = vec3(0.0);
+  vec3 att = vec3(1.0);
+  vec3 o = ro;
+  vec3 d = rd;
+  for (int bounce = 0; bounce < 12; bounce++) {
+    vec3 p;
+    vec3 n;
+    int kind;
+    if (!traceHit(o, d, p, n, kind)) {
+      col += att * sky(d);
+      break;
+    }
+    if (kind == 2) col += att * ceilEmit(p);
+    att *= vec3(0.985, 0.99, 0.995);
+    o = p + n * 0.005;
+    if (abs(n.x) > 0.5) d.x = -d.x;
+    else if (abs(n.z) > 0.5) d.z = -d.z;
+    else d.y = -d.y;
   }
-  document.getElementById("logPane").innerHTML = LOGS.map(function (row) {
-    return '<div class="log"><b>' + row[0] + "</b><p>" + row[1] + "</p></div>";
-  }).join("");
-  document.getElementById("themes").innerHTML = THEMES.map(function (row) {
-    return '<button type="button" data-theme="' + row[0] + '">' + row[1] + "</button>";
-  }).join("");
-  document.getElementById("themes").addEventListener("click", function (e) {
-    var b = e.target.closest("[data-theme]");
-    if (b) applyTheme(b.getAttribute("data-theme"));
+  return col;
+}
+
+void main() {
+  vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
+  vec3 rd = normalize(uFwd + (uv.x * uRight + uv.y * uUp) * 0.72);
+  vec3 col = shade(uCam, rd);
+  col = col / (col + vec3(0.85));
+  col = pow(max(col, vec3(0.0)), vec3(0.88));
+  fragColor = vec4(col, 1.0);
+}`;
+
+  function compile(type, src) {
+    var sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+      throw new Error(gl.getShaderInfoLog(sh) || "shader compile failed");
+    }
+    return sh;
+  }
+
+  var prog;
+  try {
+    prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, vs));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      throw new Error(gl.getProgramInfoLog(prog) || "shader link failed");
+    }
+  } catch (e) {
+    errEl.style.display = "block";
+    errEl.textContent = String(e && e.message ? e.message : e);
+    return;
+  }
+  gl.useProgram(prog);
+
+  var buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  var loc = gl.getAttribLocation(prog, "aPos");
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+  var tex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+  function uploadMaze() {
+    var rgba = new Uint8Array(N * N * 4);
+    var i;
+    for (i = 0; i < N * N; i++) {
+      var v = maze[i];
+      rgba[i * 4] = v;
+      rgba[i * 4 + 1] = v;
+      rgba[i * 4 + 2] = v;
+      rgba[i * 4 + 3] = 255;
+    }
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, 0);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, N, N, 0, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
+    var err = gl.getError();
+    if (err) {
+      errEl.style.display = "block";
+      errEl.textContent = "maze texture error " + err;
+    }
+  }
+
+  var U = {};
+  ["uMaze", "uSize", "uCam", "uFwd", "uRight", "uUp", "uExit", "uTime", "uRes"].forEach(function (name) {
+    U[name] = gl.getUniformLocation(prog, name);
   });
-  document.getElementById("logBtn").addEventListener("click", function () { openSheet("log"); });
-  document.getElementById("themeBtn").addEventListener("click", function () { openSheet("theme"); });
-  document.getElementById("sheetX").addEventListener("click", closeSheet);
-  document.getElementById("sheet").addEventListener("click", function (e) {
-    if (e.target === this) closeSheet();
-  });
-  try { applyTheme(localStorage.getItem("whyRevivedTheme") || "why"); } catch (e) { applyTheme("why"); }
+  gl.uniform1i(U.uMaze, 0);
+  gl.uniform2f(U.uSize, N, N);
 
-  loadCache();
-  render();
-  layout();
-  if (bootGame) enterMax();
-  bootPlay();
-  window.addEventListener("resize", layout);
-  if (window.visualViewport) window.visualViewport.addEventListener("resize", layout);
-  scan();
+  var cam = { x: 1.5, y: 1.15, z: 1.5, yaw: 0.2, pitch: 0.0 };
+  var keys = {};
+  var playing = false;
+  var last = 0;
+  var scale = Math.min(1, 900 / Math.max(window.innerWidth, 1));
+
+  function blocked(x, z) {
+    var cx = x | 0, cz = z | 0;
+    if (cx < 0 || cz < 0 || cx >= N || cz >= N) return true;
+    return maze[cz * N + cx] > 0;
+  }
+
+  function moveTo(nx, nz) {
+    var r = 0.16;
+    if (!blocked(nx - r, cam.z - r) && !blocked(nx + r, cam.z - r) &&
+        !blocked(nx - r, cam.z + r) && !blocked(nx + r, cam.z + r)) cam.x = nx;
+    if (!blocked(cam.x - r, nz - r) && !blocked(cam.x + r, nz - r) &&
+        !blocked(cam.x - r, nz + r) && !blocked(cam.x + r, nz + r)) cam.z = nz;
+  }
+
+  function resetCam() {
+    cam.x = start[0];
+    cam.z = start[1];
+    cam.y = 1.15;
+    cam.yaw = 0.15;
+    cam.pitch = 0;
+  }
+
+  function newMaze() {
+    genMaze();
+    uploadMaze();
+    resetCam();
+    gl.uniform2f(U.uExit, exitC[0], exitC[1]);
+  }
+  newMaze();
+
+  function resize() {
+    var w = Math.max(1, (window.innerWidth * scale) | 0);
+    var h = Math.max(1, (window.innerHeight * scale) | 0);
+    canvas.width = w;
+    canvas.height = h;
+    gl.viewport(0, 0, w, h);
+    gl.uniform2f(U.uRes, w, h);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  document.addEventListener("keydown", function (e) {
+    keys[e.code] = true;
+    if (e.code === "KeyR" && playing) newMaze();
+    if (e.code === "Space") e.preventDefault();
+  });
+  document.addEventListener("keyup", function (e) { keys[e.code] = false; });
+
+  canvas.addEventListener("click", function () {
+    canvas.requestPointerLock();
+  });
+  document.addEventListener("pointerlockchange", function () {
+    playing = document.pointerLockElement === canvas;
+    document.getElementById("ui").style.display = playing ? "none" : "flex";
+    document.getElementById("hud").style.display = playing ? "block" : "none";
+    document.getElementById("cross").style.display = playing ? "block" : "none";
+  });
+  document.addEventListener("mousemove", function (e) {
+    if (!playing) return;
+    cam.yaw += e.movementX * 0.0022;
+    cam.pitch = Math.max(-1.2, Math.min(1.2, cam.pitch - e.movementY * 0.0022));
+  });
+
+  function frame(now) {
+    var dt = Math.min(0.05, (now - last) / 1000 || 0.016);
+    last = now;
+    if (playing) {
+      var sp = (keys.ShiftLeft || keys.ShiftRight ? 3.6 : 2.15) * dt;
+      var fx = Math.sin(cam.yaw), fz = Math.cos(cam.yaw);
+      var rx = Math.cos(cam.yaw), rz = -Math.sin(cam.yaw);
+      var mx = 0, mz = 0;
+      if (keys.KeyW) { mx += fx; mz += fz; }
+      if (keys.KeyS) { mx -= fx; mz -= fz; }
+      if (keys.KeyD) { mx += rx; mz += rz; }
+      if (keys.KeyA) { mx -= rx; mz -= rz; }
+      var len = Math.hypot(mx, mz);
+      if (len > 0) moveTo(cam.x + mx / len * sp, cam.z + mz / len * sp);
+    }
+
+    var cp = Math.cos(cam.pitch), spn = Math.sin(cam.pitch);
+    var cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
+    var fwd = [sy * cp, spn, cy * cp];
+    var right = [cy, 0, -sy];
+    var up = [-sy * spn, cp, -cy * spn];
+
+    gl.uniform3f(U.uCam, cam.x, cam.y, cam.z);
+    gl.uniform3f(U.uFwd, fwd[0], fwd[1], fwd[2]);
+    gl.uniform3f(U.uRight, right[0], right[1], right[2]);
+    gl.uniform3f(U.uUp, up[0], up[1], up[2]);
+    gl.uniform1f(U.uTime, now * 0.001);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 })();
 </script>
 </body>
