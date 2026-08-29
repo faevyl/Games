@@ -318,6 +318,7 @@
     ["lab", "Lab"]
   ];
   var LOGS = [
+    ["aug 29", "same extra games as why revived. canvas flash, canvas html, and webgl ones like slope/run 3/1v1 if the browser has it"],
     ["raw", "RAW is the actual html of the game page. the editor highlights html/css/js and suggests tags, css props, and some javascript. Ctrl+Space opens suggestions, Tab accepts."],
     ["play", "PLAY runs it the same way Why Revived does. RUN plays whatever is in the editor, edits included."],
     ["paste", "not in the list? paste a game html url under search and hit FETCH URL."]
@@ -378,7 +379,37 @@
     "seraph/electricman2": "Electric Man 2",
     "seraph/linerider": "Line Rider",
     "seraph/chibiknight": "Chibi Knight",
-    "seraph/supermarioflash": "Super Mario Flash"
+    "seraph/supermarioflash": "Super Mario Flash",
+    "papa-pizza.html": "Papa's Pizzeria",
+    "papas-freezeria.html": "Papa's Freezeria",
+    "papas-pancakeria.html": "Papa's Pancakeria",
+    "papas-scooperia.html": "Papa's Scooperia",
+    "stick-rpg-complete.html": "Stick RPG Complete",
+    "getaway-shoot-out.html": "Getaway Shootout",
+    "friday-night-funkin.html": "Friday Night Funkin'",
+    "subway-surfers-miami.html": "Subway Surfers Miami",
+    "2048.html": "2048",
+    "ovo.html": "OvO",
+    "run-3.html": "Run 3",
+    "slope.html": "Slope",
+    "slope-3.html": "Slope 3",
+    "seraph/1v1lol": "1v1.LOL",
+    "seraph/1on1soccer": "1 on 1 Soccer",
+    "seraph/battlebeavers": "Battle Beavers",
+    "seraph/bikechamp": "Bike Champ",
+    "seraph/bikechamp2": "Bike Champ 2",
+    "seraph/canopy": "Canopy",
+    "seraph/cavechaos": "Cave Chaos",
+    "seraph/cheesedreams": "Cheese Dreams",
+    "seraph/chisel": "Chisel",
+    "seraph/chisel2": "Chisel 2",
+    "seraph/chooseyourweapon": "Choose Your Weapon",
+    "seraph/chooseyourweapon2": "Choose Your Weapon 2",
+    "seraph/chooseyourweapon3": "Choose Your Weapon 3",
+    "seraph/controlcraft2": "Control Craft 2",
+    "seraph/3line": "3 Line",
+    "seraph/bubblespinner": "Bubble Spinner",
+    "seraph/bigredbutton": "The Big Red Button"
   };
   var SEED = [
     ["achillies-1-fr.html", "flash"],
@@ -449,7 +480,77 @@
     ["cooking-mama-2.html", "nds"],
     ["cooking-mama-3.html", "nds"],
     ["pokemon-diamond.html", "nds", CDN + "bubbls/ugss@c1ee7c5c6ee36389455d85874293c1e35c569e37/Pokemon%20-%20Diamond%20Version%20(USA)%20(Rev%205)/Pokemon%20-%20Diamond%20Version%20(USA)%20(Rev%205).nds"],
-    ["pokemon-pearl.html", "nds", CDN + "bubbls/ugss@adb3ef7b1ed9dcefb25f4ea6e2ad1aa30a27c599/Pokemon%20-%20Pearl%20Version%20(USA)%20(Rev%205)/Pokemon%20-%20Pearl%20Version%20(USA)%20(Rev%205).nds"]
+    ["pokemon-pearl.html", "nds", CDN + "bubbls/ugss@adb3ef7b1ed9dcefb25f4ea6e2ad1aa30a27c599/Pokemon%20-%20Pearl%20Version%20(USA)%20(Rev%205)/Pokemon%20-%20Pearl%20Version%20(USA)%20(Rev%205).nds"],
+    ["duck-life.html", "flash"],
+    ["duck-life-2.html", "flash"],
+    ["duck-life-3.html", "flash"],
+    ["duck-life-4.html", "flash"],
+    ["fireboy-and-water-girl.html", "flash"],
+    ["fireboy-and-water-girl-2.html", "flash"],
+    ["raft-wars.html", "flash"],
+    ["raft-wars-2.html", "flash"],
+    ["strike-force-heroes.html", "flash"],
+    ["strike-force-heroes-2.html", "flash"],
+    ["papa-pizza.html", "flash"],
+    ["papas-freezeria.html", "flash"],
+    ["papas-pancakeria.html", "flash"],
+    ["papas-scooperia.html", "flash"],
+    ["hobo.html", "flash"],
+    ["hobo-2.html", "flash"],
+    ["hobo-3.html", "flash"],
+    ["bloxorz.html", "flash"],
+    ["stick-rpg-complete.html", "flash"],
+    ["stick-war.html", "flash"],
+    ["stick-war-2.html", "flash"],
+    ["super-fighters.html", "flash"],
+    ["burrito-bison.html", "flash"],
+    ["factory-balls.html", "flash"],
+    ["flood-runner.html", "flash"],
+    ["flood-runner-2.html", "flash"],
+    ["red-ball.html", "flash"],
+    ["red-ball-4.html", "flash"],
+    ["angry-birds.html", "flash"],
+    ["doodle-jump.html", "flash"],
+    ["pacman.html", "flash"],
+    ["bad-ice-cream.html", "flash"],
+    ["bubble-tanks-2.html", "flash"],
+    ["amorphous.html", "flash"],
+    ["bad-piggies.html", "flash"],
+    ["impossible-quiz-2.html", "flash"],
+    ["seraph/1on1soccer", "flash", CDN + SERAPH + "games/1on1soccer/1on1-soccer.swf"],
+    ["seraph/battlebeavers", "flash", CDN + SERAPH + "games/battlebeavers/battle-beavers-12263fdd9.swf"],
+    ["seraph/bikechamp", "flash", CDN + SERAPH + "games/bikechamp/bikechamp.swf"],
+    ["seraph/bikechamp2", "flash", CDN + SERAPH + "games/bikechamp2/bikechamp2.swf"],
+    ["seraph/canopy", "flash", CDN + SERAPH + "games/canopy/Canopy.swf"],
+    ["seraph/cavechaos", "flash", CDN + SERAPH + "games/cavechaos/Cave_Chaos.swf"],
+    ["seraph/cheesedreams", "flash", CDN + SERAPH + "games/cheesedreams/Cheese_Dreams.swf"],
+    ["seraph/chisel", "flash", CDN + SERAPH + "games/chisel/Chisel.swf"],
+    ["seraph/chisel2", "flash", CDN + SERAPH + "games/chisel2/Chisel_2.swf"],
+    ["seraph/chooseyourweapon", "flash", CDN + SERAPH + "games/chooseyourweapon/choose-your-weapon.swf"],
+    ["seraph/chooseyourweapon2", "flash", CDN + SERAPH + "games/chooseyourweapon2/choose-your-weapon-2.swf"],
+    ["seraph/chooseyourweapon3", "flash", CDN + SERAPH + "games/chooseyourweapon3/choose-your-weapon-3.swf"],
+    ["seraph/controlcraft2", "flash", CDN + SERAPH + "games/controlcraft2/controlcraft-2-1521105b0.swf"],
+    ["seraph/3line", "flash", CDN + SERAPH + "games/3line/3line.swf"],
+    ["seraph/bubblespinner", "flash", CDN + SERAPH + "games/bubblespinner/bubble-shooter.swf"],
+    ["seraph/bigredbutton", "flash", CDN + SERAPH + "games/bigredbutton/big_red_button.swf"],
+    ["2048.html", "web"],
+    ["bitlife.html", "web"],
+    ["ovo.html", "web"],
+    ["retro-bowl.html", "web"],
+    ["friday-night-funkin.html", "web"],
+    ["basket-random.html", "web"],
+    ["boxing-random.html", "web"],
+    ["soccer-random.html", "web"],
+    ["tetris.html", "web"],
+    ["slope.html", "web"],
+    ["slope-3.html", "web"],
+    ["run-3.html", "web"],
+    ["cluster-rush.html", "web"],
+    ["helix-jump.html", "web"],
+    ["getaway-shoot-out.html", "web"],
+    ["subway-surfers-miami.html", "web"],
+    ["super-hot.html", "web"],
+    ["seraph/1v1lol", "web", CDN + SERAPH + "games/1v1lol/index.html"]
   ];
   var BLOCK_FILE = {
     "cooking-mama.html": 1,
@@ -490,6 +591,17 @@
   ];
   var GPU_FILE = {};
   GPU_SWF.forEach(function (row) { GPU_FILE[row[0]] = 1; });
+  var GPU_HTML = {
+    "slope.html": 1,
+    "slope-3.html": 1,
+    "run-3.html": 1,
+    "cluster-rush.html": 1,
+    "helix-jump.html": 1,
+    "getaway-shoot-out.html": 1,
+    "subway-surfers-miami.html": 2,
+    "super-hot.html": 2,
+    "seraph/1v1lol": 2
+  };
   var games = {};
   var tab = "all";
   var sel = null;
@@ -611,7 +723,7 @@
   function folderSite(file) {
     var p = String(file || "");
     if (!p) return true;
-    if (/ragdoll-archers|riddle-school-5|(^|\/)fnaf$|(^|\/)half-?life|thebindingofisaac|binding-?of-?isaac|fancypants|themehotel|escapingtheprison|stealingthediamond|infiltratingtheairship|fleeingthecomplex|breakingthebank|learntofly|worldshardestgame|thisistheonlylevel|electricman|linerider|chibiknight|supermarioflash|supersmashflash/i.test(p)) return false;
+    if (/ragdoll-archers|riddle-school-5|(^|\/)fnaf$|(^|\/)half-?life|thebindingofisaac|binding-?of-?isaac|fancypants|themehotel|escapingtheprison|stealingthediamond|infiltratingtheairship|fleeingthecomplex|breakingthebank|learntofly|worldshardestgame|thisistheonlylevel|electricman|linerider|chibiknight|supermarioflash|supersmashflash|1on1soccer|battlebeavers|bikechamp|canopy|cavechaos|cheesedreams|chisel|chooseyourweapon|controlcraft|3line|bubblespinner|bigredbutton|1v1lol/i.test(p)) return false;
     if (p.indexOf("/") !== -1) return true;
     if (/^seraph\//i.test(p)) return true;
     return false;
@@ -630,6 +742,7 @@
   function add(file, kind, dest) {
     if (!file || BLOCK_FILE[file] || BLOCK_FILE[file.replace(/\/index\.html$/i, "")] || games[file]) return;
     if (!gpuPlay && GPU_FILE[file]) return;
+    if (GPU_HTML[file] && webgl.level < GPU_HTML[file]) return;
     if (folderSite(file)) return;
     dest = dest ? cleanUrl(dest) : "";
     if (dest && destBlocked(dest)) return;
@@ -1611,7 +1724,7 @@
       var n = f.name.toLowerCase();
       var sz = f.size || 0;
       if (n.indexOf("gba") !== -1 || n.indexOf("nes") !== -1 || n.indexOf("n64") !== -1) return false;
-      if (/flash|ruffle|swf|achill|riddle|cookie|granny|burger|fnaf|gun-mayhem|ragdoll|drive-mad|escape-road|parenting/.test(n)) return true;
+      if (/flash|ruffle|swf|achill|riddle|cookie|granny|burger|fnaf|gun-mayhem|ragdoll|drive-mad|escape-road|parenting|slope|duck-life|papa|raft-wars|strike-force|fireboy|bitlife|2048|ovo|retro-bowl|helix|cluster|subway|run-3|friday-night|funkin|hobo|bloxorz|stick-rpg|stick-war|super-fighters|burrito|doodle|pacman|tetris|red-ball|factory-balls|flood-runner|basket-random|boxing-random|soccer-random|angry-birds|getaway|super-hot|bad-ice|bubble-tanks|amorphous|bad-piggies/.test(n)) return true;
       if (/(^|-)(ds|dsi|nds)\.html$/.test(n) || /mario-kart-ds|mario-party-ds|super-mario-64-ds|animal-crossing-wild-world/.test(n)) return true;
       if (sz >= 900 && sz <= 1600) return true;
       if (sz >= 2400 && sz <= 4500) return true;
