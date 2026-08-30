@@ -204,6 +204,7 @@
     ["paper", "Paper"]
   ];
   var LOGS = [
+    ["aug 29", "kindergarten actually boots now. the old pages just sat there because the split unity files never got a real wasm type"],
     ["aug 29", "added a bunch of canvas flash (ducklife, papas, raft wars, hobo, etc) plus html5 like 2048/ovo/retro bowl. slope, run 3, subway, super hot, 1v1 only show if webgl/webgl2 is actually there"],
     ["aug 28", "added themes + a log. sheep time is back. isaac kept jumping to the last frame so i stopped resizing it every 400ms like an idiot"],
     ["aug 27", "nova craft is in. jsdelivr 403s genizy so that one goes through github. cleaned up the duplicate listings. pokemon is diamond and pearl now not those fake ds files"],
@@ -297,7 +298,10 @@
     "seraph/controlcraft2": "Control Craft 2",
     "seraph/3line": "3 Line",
     "seraph/bubblespinner": "Bubble Spinner",
-    "seraph/bigredbutton": "The Big Red Button"
+    "seraph/bigredbutton": "The Big Red Button",
+    "kindergarten.html": "Kindergarten",
+    "kindergarten-2.html": "Kindergarten 2",
+    "kindergarten-3.html": "Kindergarten 3"
   };
   var SEED = [
     ["achillies-1-fr.html", "flash"],
@@ -438,7 +442,10 @@
     ["getaway-shoot-out.html", "web"],
     ["subway-surfers-miami.html", "web"],
     ["super-hot.html", "web"],
-    ["seraph/1v1lol", "web", CDN + SERAPH + "games/1v1lol/index.html"]
+    ["seraph/1v1lol", "web", CDN + SERAPH + "games/1v1lol/index.html"],
+    ["kindergarten.html", "web", "https://raw.githubusercontent.com/genizy/web-port/main/kindergarten/1/index.html"],
+    ["kindergarten-2.html", "web", "https://raw.githubusercontent.com/genizy/web-port/main/kindergarten/2/index.html"],
+    ["kindergarten-3.html", "web", "https://raw.githubusercontent.com/slqntdevss/Kindergarten3Port/main/index.html"]
   ];
   var BLOCK_FILE = {
     "cooking-mama.html": 1,
@@ -489,6 +496,42 @@
     "subway-surfers-miami.html": 2,
     "super-hot.html": 2,
     "seraph/1v1lol": 2
+  };
+  var UNITY_SPLIT = {
+    "kindergarten.html": {
+      product: "Kindergarten",
+      company: "SmashGames",
+      version: "2.04",
+      bases: ["https://raw.githubusercontent.com/genizy/web-port/main/kindergarten/1/"],
+      loader: "Build/Build.loader.js",
+      framework: "Build/Build.framework.js",
+      data: ["Build/Build.data"],
+      wasm: ["Build/Build.wasm.part1", "Build/Build.wasm.part2", "Build/Build.wasm.part3"]
+    },
+    "kindergarten-2.html": {
+      product: "Kindergarten2",
+      company: "SmashGames",
+      version: "2.00",
+      bases: ["https://raw.githubusercontent.com/genizy/web-port/main/kindergarten/2/"],
+      loader: "Build/Build.loader.js",
+      framework: "Build/Build.framework.js",
+      data: ["Build/Build.data.part1", "Build/Build.data.part2"],
+      wasm: ["Build/Build.wasm.part1", "Build/Build.wasm.part2", "Build/Build.wasm.part3"]
+    },
+    "kindergarten-3.html": {
+      product: "Kindergarten3",
+      company: "Con Man Games",
+      version: "0.01",
+      bases: [
+        "https://raw.githubusercontent.com/slqntdevss/Kindergarten3Port/main/",
+        "https://cdn.jsdelivr.net/gh/slqntdevss/Kindergarten3Port@main/",
+        "https://jsdelivr.b-cdn.net/gh/slqntdevss/Kindergarten3Port@main/"
+      ],
+      loader: "Build/Kindergarten3Port.loader.js",
+      framework: "Build/Kindergarten3Port.framework.js",
+      data: ["Build/Kindergarten3Port.data.part1", "Build/Kindergarten3Port.data.part2"],
+      wasm: ["Build/Kindergarten3Port.wasm.part1", "Build/Kindergarten3Port.wasm.part2", "Build/Kindergarten3Port.wasm.part3"]
+    }
   };
   var games = {};
   var tab = "all";
@@ -1007,6 +1050,47 @@
       "<script src='" + EJS + "/loader.js'><\/script></body></html>";
   }
 
+  function unitySplitDoc(spec) {
+    spec = spec || {};
+    return "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
+      "<style>html,body,#unity-container,#unity-canvas{margin:0;width:100%;height:100%;min-width:320px;min-height:240px;background:#000;overflow:hidden}" +
+      "#unity-container{position:fixed;inset:0}#unity-canvas{display:block;width:100%;height:100%}" +
+      "#st{position:fixed;left:12px;right:12px;bottom:16px;color:#e8dcc8;font:14px Georgia,serif;z-index:2}" +
+      "#bar{height:8px;background:#2a241c;margin-top:8px}#fill{height:8px;width:0;background:#c8a060}</style></head><body>" +
+      "<div id='unity-container'><canvas id='unity-canvas' tabindex='-1'></canvas></div>" +
+      "<div id='st'>loading kindergarten… big download<div id='bar'><div id='fill'></div></div></div>" +
+      "<script>(function(){var spec=" + JSON.stringify({
+        product: spec.product,
+        company: spec.company,
+        version: spec.version,
+        bases: spec.bases,
+        loader: spec.loader,
+        framework: spec.framework,
+        data: spec.data,
+        wasm: spec.wasm
+      }) + ";" +
+      "function say(t){var s=document.getElementById('st');if(s&&s.firstChild)s.firstChild.nodeValue=t;}" +
+      "function fill(p){var f=document.getElementById('fill');if(f)f.style.width=Math.round(100*p)+'%';}" +
+      "function urls(rel){return spec.bases.map(function(b){return b+rel;});}" +
+      "function grab(rel){var list=urls(rel);return (async function(){var i,err;for(i=0;i<list.length;i++){try{var r=await fetch(list[i]);if(r.ok)return await r.arrayBuffer();err=r.status;}catch(e){err=e;}}throw new Error('fail '+rel+' '+err);})();}" +
+      "function blob(parts,type){return URL.createObjectURL(new Blob(parts,{type:type}));}" +
+      "async function merge(list,type){var bufs=[],i;for(i=0;i<list.length;i++){say('getting '+list[i]+'…');bufs.push(await grab(list[i]));fill((i+1)/list.length*0.45);}return blob(bufs,type);}" +
+      "function sz(){var c=document.getElementById('unity-canvas');var w=Math.max(320,window.innerWidth||320),h=Math.max(240,window.innerHeight||240);c.width=w;c.height=h;c.style.width=w+'px';c.style.height=h+'px';}" +
+      "sz();window.addEventListener('resize',sz);" +
+      "(async function(){try{say('downloading…');" +
+      "var dataUrl=await merge(spec.data,'application/octet-stream');" +
+      "var wasmUrl=await merge(spec.wasm,'application/wasm');" +
+      "say('loader…');" +
+      "var fw=blob([await grab(spec.framework)],'application/javascript');" +
+      "var ld=blob([await grab(spec.loader)],'application/javascript');" +
+      "await new Promise(function(ok,bad){var s=document.createElement('script');s.src=ld;s.onload=ok;s.onerror=function(){bad(new Error('loader'));};document.body.appendChild(s);});" +
+      "if(!window.createUnityInstance)throw new Error('no unity');" +
+      "say('starting…');" +
+      "await createUnityInstance(document.getElementById('unity-canvas'),{dataUrl:dataUrl,frameworkUrl:fw,codeUrl:wasmUrl,streamingAssetsUrl:spec.bases[0]+'StreamingAssets',companyName:spec.company,productName:spec.product,productVersion:spec.version},function(p){fill(0.5+p*0.5);say('unity '+Math.round(p*100)+'%');});" +
+      "var st=document.getElementById('st');if(st)st.remove();" +
+      "}catch(e){say('couldnt load: '+(e&&e.message?e.message:e));}})();})();<\/script></body></html>";
+  }
+
   var loadToken = 0;
   var loadTimer = 0;
   function setLoad(on, msg) {
@@ -1124,6 +1208,10 @@
     setLoad(true, "loading " + g.name + "…");
     layout();
     render();
+    if (UNITY_SPLIT[file]) {
+      playHtml(unitySplitDoc(UNITY_SPLIT[file]), UNITY_SPLIT[file].bases[0]);
+      return;
+    }
     var url = pageUrl(g);
     try {
       var txt = await fetchText(url);
