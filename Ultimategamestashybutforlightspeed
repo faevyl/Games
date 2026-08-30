@@ -13,7 +13,7 @@
 -->
 <style>
   :root, [data-theme="why"] {
-    --bg: #0c1014; --fg: #e8dcc8; --bar: #14181e; --line: #3a3226; --title: #f0e0c0;
+    --bg: #0c1014; --fg: #e8dcc8; --bar: #14181e; --line: #3a3226; --title: #f0e0c007;
     --btn: #1a1814; --btn-fg: #c8b490; --accent: #c8a060; --muted: #7a6a52;
     --side: #101418; --card: #171410; --card-line: #2a241c; --hover: #d8c4a0;
   }
