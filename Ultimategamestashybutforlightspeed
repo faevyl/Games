@@ -195,8 +195,8 @@
   var BUNNY = "https://jsdelivr.b-cdn.net/gh/";
   var LITE = "Craf1ed/lite-assets@main/";
   var SERAPH = "a456pur/seraph@ae2fcc6d6a9cd051654fcc0519080db1f79cf2a7/";
-  var RUFFLE = "https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.5.0/ruffle.js";
-  var RUFFLE_DIR = "https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.5.0/";
+  var RUFFLE = "https://cdn.jsdelivr.net/gh/u-cvlassrom-y/google@main/ruffle.js";
+  var RUFFLE_DIR = "https://cdn.jsdelivr.net/gh/u-cvlassrom-y/google@main/";
   var EJS = CDN + "a456pur/seraph@81f551ca0aa8e3d6018d32d8ac5904ac9bc78f76/storage/emulatorjs/data";
   var API = "https://api.github.com/repos/Craf1ed/lite-assets/contents/";
   var THEMES = [
@@ -208,6 +208,8 @@
     ["paper", "Paper"]
   ];
   var LOGS = [
+    ["sep 11", "flash games that were still wrapping swfs in the broken ruffle player now use the same object/embed page as happy wheels. stickmin and the other seraph ones were still on unpkg ruffle"],
+    ["sep 11", "happy wheels (and other pages that already have ruffle) play that same html you can embed on sites. we were ripping the swf out and wrapping it in a different ruffle"],
     ["sep 9", "all wasm.rip ports are in (cuphead, stardew, batim, peak, etc) and they say ported by guyg. play one once online to keep it on this sites page"],
     ["sep 6", "took the local ai chat out of the html list. it was making the page huge"],
     ["sep 1", "ragdoll was serving wasm as the wrong type so unity just sat there. kindergarten 1 and 2 now use the actual webport page, not a fetch wrapper. offline caches games you already opened"],
@@ -328,6 +330,7 @@
     "azahar.html": "Azahar",
     "ravenfield.html": "Ravenfield",
     "happy-room.html": "Happy Room",
+    "happy-wheels.html": "Happy Wheels",
     "inscryption.html": "Inscryption",
     "lobotomy-corp.html": "Lobotomy Corporation",
     "ages-of-conflict.html": "Ages of Conflict",
@@ -978,8 +981,8 @@
       "if(/\\.css$/i.test(u))return'text/css';" +
       "if(/\\.(data|mem|bundle|pck|unityweb|part\\d+)$/i.test(u))return'application/octet-stream';return'';}" +
       "function abs(u){try{return new URL(String(u||''),document.baseURI).href;}catch(e){return String(u||'');}}" +
-      "function patch(u){u=String(u||'');if(/@ruffle-rs\\/ruffle/i.test(u))return false;return /raw\\.githubusercontent\\.com|jsdelivr\\.(net|b-cdn\\.net)|fastly\\.jsdelivr\\.net|wasm\\.rip|unpkg\\.com|cdnjs\\.cloudflare/i.test(u);}" +
-      "function skip(u){return !u||/^(blob:|data:|about:)/i.test(u)||/@ruffle-rs\\/ruffle/i.test(u);}" +
+      "function patch(u){u=String(u||'');if(/@ruffle-rs\\/ruffle|u-cvlassrom-y\\/google|\\/ruffle\\.js/i.test(u))return false;return /raw\\.githubusercontent\\.com|jsdelivr\\.(net|b-cdn\\.net)|fastly\\.jsdelivr\\.net|wasm\\.rip|unpkg\\.com|cdnjs\\.cloudflare/i.test(u);}" +
+      "function skip(u){return !u||/^(blob:|data:|about:)/i.test(u)||/@ruffle-rs\\/ruffle|u-cvlassrom-y\\/google|\\/ruffle\\.js/i.test(u);}" +
       "function rewire(u){return /raw\\.githubusercontent\\.com|\\/gh\\/genizy\\//i.test(u);}" +
       "function swap(u){if(/cdn\\.jsdelivr\\.net\\/gh\\//i.test(u))return u.replace('cdn.jsdelivr.net','jsdelivr.b-cdn.net');" +
       "if(/jsdelivr\\.b-cdn\\.net\\/gh\\//i.test(u))return u.replace('jsdelivr.b-cdn.net','cdn.jsdelivr.net');return'';}" +
@@ -1426,14 +1429,19 @@
     }
   }
 
-  function show(html) {
-    html = withPatch(html);
+  function hasOwnRuffle(html) {
+    return /<script[^>]+src=["'][^"']*ruffle\.js/i.test(html || "");
+  }
+
+  function show(html, opt) {
+    opt = opt || {};
+    if (!opt.bare) html = withPatch(html);
     layout();
     var frame = document.getElementById("frame");
     var tok = loadToken;
     dropPageBlob();
     frame.removeAttribute("src");
-    var skipFit = !!(ownCdnBase(html) || /createUnityInstance|poki-sdk|emscripten|Engine\.startGame|IDBFS|RSDKv5U|type=["']module["']|nova-craft|raw\.githubusercontent\.com|jsdelivr|wasm\.rip|mergeFiles/i.test(html));
+    var skipFit = !!(opt.bare || ownCdnBase(html) || /createUnityInstance|poki-sdk|emscripten|Engine\.startGame|IDBFS|RSDKv5U|type=["']module["']|nova-craft|raw\.githubusercontent\.com|jsdelivr|wasm\.rip|mergeFiles|ruffle\.js/i.test(html));
     frame.srcdoc = skipFit ? html : injectFit(html);
     frame.onload = function () {
       layout();
@@ -1443,6 +1451,10 @@
   }
 
   function playHtml(html, base) {
+    if (hasOwnRuffle(html)) {
+      show(html, { bare: true });
+      return;
+    }
     show(withBase(html, base));
   }
 
@@ -1660,8 +1672,12 @@
         }
         if (info.kind === "flash" || /\.swf($|\?)/i.test(abs)) swf = abs;
       }
+      if (html && hasOwnRuffle(html)) {
+        show(html, { bare: true });
+        return;
+      }
       if (swf && /\.swf($|\?)/i.test(swf) && !destBlocked(swf)) {
-        show(ruffleDoc(swf));
+        show(ruffleDoc(swf), { bare: true });
         return;
       }
       var live = mirrors(url)[0];
@@ -1677,7 +1693,7 @@
     var dest = g.dest;
     if (dest && destBlocked(dest)) { hideLoad(); return; }
     if (dest && /\.swf/i.test(dest)) {
-      show(ruffleDoc(dest));
+      show(ruffleDoc(dest), { bare: true });
       return;
     }
     if (g.kind === "nds" && dest) {
