@@ -980,37 +980,58 @@
       "if(/\\.m?js(\\.unityweb)?$/i.test(u))return'application/javascript';" +
       "if(/\\.json$/i.test(u))return'application/json';" +
       "if(/\\.css$/i.test(u))return'text/css';" +
+      "if(/\\.(swf|nds|gba|zip)$/i.test(u))return'application/octet-stream';" +
       "if(/\\.(data|mem|bundle|pck|unityweb|part\\d+)$/i.test(u))return'application/octet-stream';return'';}" +
       "function abs(u){try{return new URL(String(u||''),document.baseURI).href;}catch(e){return String(u||'');}}" +
-      "function patch(u){u=String(u||'');if(/@ruffle-rs\\/ruffle|u-cvlassrom-y\\/google|\\/ruffle\\.js/i.test(u))return false;return /raw\\.githubusercontent\\.com|jsdelivr\\.(net|b-cdn\\.net)|fastly\\.jsdelivr\\.net|wasm\\.rip|unpkg\\.com|cdnjs\\.cloudflare/i.test(u);}" +
-      "function skip(u){return !u||/^(blob:|data:|about:)/i.test(u)||/@ruffle-rs\\/ruffle|u-cvlassrom-y\\/google|\\/ruffle\\.js/i.test(u);}" +
-      "function rewire(u){return /raw\\.githubusercontent\\.com|\\/gh\\/genizy\\//i.test(u);}" +
+      "function skip(u){return !u||/^(blob:|data:|about:)/i.test(u);}" +
+      "function keep(u){return /u-cvlassrom-y\\/google|\\/ruffle\\.js/i.test(u);}" +
+      "function patch(u){u=String(u||'');return /raw\\.githubusercontent\\.com|jsdelivr\\.(net|b-cdn\\.net)|fastly\\.jsdelivr\\.net|unpkg\\.com|cdnjs\\.cloudflare|u-cvlassrom-y\\/google|ruffle\\.js/i.test(u);}" +
       "function swap(u){if(/cdn\\.jsdelivr\\.net\\/gh\\//i.test(u))return u.replace('cdn.jsdelivr.net','jsdelivr.b-cdn.net');" +
       "if(/jsdelivr\\.b-cdn\\.net\\/gh\\//i.test(u))return u.replace('jsdelivr.b-cdn.net','cdn.jsdelivr.net');return'';}" +
+      "function keys(u){u=abs(u);var out=[],seen={};function add(x){if(x&&!seen[x]){seen[x]=1;out.push(x);}}add(u);add(swap(u));" +
+      "var m=u.match(/^https?:\\/\\/(?:cdn\\.jsdelivr\\.net|jsdelivr\\.b-cdn\\.net|fastly\\.jsdelivr\\.net)\\/gh\\/([^\\/]+)\\/([^@\\/]+)@([^\\/]+)\\/(.+)$/i);" +
+      "if(m){add('https://cdn.jsdelivr.net/gh/'+m[1]+'/'+m[2]+'@'+m[3]+'/'+m[4]);add('https://jsdelivr.b-cdn.net/gh/'+m[1]+'/'+m[2]+'@'+m[3]+'/'+m[4]);add('https://raw.githubusercontent.com/'+m[1]+'/'+m[2]+'/'+m[3]+'/'+m[4]);}" +
+      "m=u.match(/^https?:\\/\\/raw\\.githubusercontent\\.com\\/([^\\/]+)\\/([^\\/]+)\\/([^\\/]+)\\/(.+)$/i);" +
+      "if(m){add('https://cdn.jsdelivr.net/gh/'+m[1]+'/'+m[2]+'@'+m[3]+'/'+m[4]);add('https://jsdelivr.b-cdn.net/gh/'+m[1]+'/'+m[2]+'@'+m[3]+'/'+m[4]);}" +
+      "return out;}" +
       "function dbp(){return new Promise(function(ok,bad){try{var r=indexedDB.open('whyRevivedAssets',1);r.onupgradeneeded=function(){r.result.createObjectStore('f');};r.onsuccess=function(){ok(r.result)};r.onerror=function(){bad(r.error)};}catch(e){bad(e);}});}" +
       "function idbGet(k){return dbp().then(function(db){return new Promise(function(ok){var q=db.transaction('f').objectStore('f').get(k);q.onsuccess=function(){ok(q.result||null)};q.onerror=function(){ok(null)};});}).catch(function(){return null;});}" +
       "function idbPut(k,v){return dbp().then(function(db){db.transaction('f','readwrite').objectStore('f').put(v,k);}).catch(function(){});}" +
+      "function idbGetAny(u){var ks=keys(u),i=0;function next(){if(i>=ks.length)return Promise.resolve(null);return idbGet(ks[i++]).then(function(b){return b||next();});}return next();}" +
+      "function idbPutAll(u,b){keys(u).forEach(function(k){idbPut(k,b);});}" +
       "function boxed(b,url,st){var t=mime(url);if(!t&&b){try{var u8=new Uint8Array(b);if(u8[0]===0&&u8[1]===97&&u8[2]===115&&u8[3]===109)t='application/wasm';}catch(e){}}t=t||'application/octet-stream';return new Response(b,{status:st||200,statusText:'OK',headers:{'Content-Type':t}});}" +
       "var F=window.fetch;" +
       "window.fetch=function(i,n){var u=abs(typeof i==='string'?i:(i&&i.url)||'');" +
       "if(skip(u))return F.call(window,i,n);" +
-      "function cooked(r,url){return r.arrayBuffer().then(function(b){idbPut(url,b);return boxed(b,url,r.status);});}" +
-      "function net(url){IN++;return F.call(window,url,n).then(function(r){if(r.ok)return cooked(r,url);var a=swap(url);if(a)return F.call(window,a,n).then(function(r2){return r2.ok?cooked(r2,url):r;});return r;}).then(function(r){IN--;DONE++;return r;},function(e){IN--;throw e;});}" +
-      "return idbGet(u).then(function(b){if(b)return boxed(b,u,200);if(!patch(u))return F.call(window,i,n);if(OFF)return Promise.reject(new TypeError('offline'));return net(u);});};" +
+      "function cooked(r,url){return r.arrayBuffer().then(function(b){idbPutAll(url,b);return boxed(b,url,r.status);});}" +
+      "function net(url){IN++;var list=keys(url),i=0;function go(){if(i>=list.length)return Promise.reject(new TypeError('fail '+url));var cur=list[i++];return F.call(window,cur,n).then(function(r){if(r.ok)return cooked(r,url);return go();},function(){return go();});}return go().then(function(r){IN--;DONE++;return r;},function(e){IN--;throw e;});}" +
+      "return idbGetAny(u).then(function(b){if(b)return boxed(b,u,200);if(!patch(u))return F.call(window,i,n);if(OFF)return Promise.reject(new TypeError('offline'));return net(u);});};" +
       "var XO=XMLHttpRequest.prototype.open;" +
+      "var XS=XMLHttpRequest.prototype.send;" +
       "XMLHttpRequest.prototype.open=function(m,u){this.__why=abs(u);if(skip(this.__why))return XO.apply(this,arguments);var t=patch(this.__why)&&mime(this.__why);if(t){try{this.overrideMimeType(t);}catch(e){}}return XO.apply(this,arguments);};" +
+      "XMLHttpRequest.prototype.send=function(){var xhr=this,u=xhr.__why,args=arguments;" +
+      "if(!u||skip(u)||!patch(u))return XS.apply(xhr,args);" +
+      "function fake(b){try{Object.defineProperty(xhr,'readyState',{configurable:true,get:function(){return 4;}});Object.defineProperty(xhr,'status',{configurable:true,get:function(){return 200;}});Object.defineProperty(xhr,'responseURL',{configurable:true,get:function(){return u;}});" +
+      "var rt=xhr.responseType||'';var text='';try{text=new TextDecoder().decode(b);}catch(e){}" +
+      "Object.defineProperty(xhr,'responseText',{configurable:true,get:function(){return text;}});" +
+      "Object.defineProperty(xhr,'response',{configurable:true,get:function(){return rt==='arraybuffer'?b:(rt==='blob'?new Blob([b]):text);}});}catch(e){}" +
+      "if(xhr.onreadystatechange)try{xhr.onreadystatechange();}catch(e){}xhr.dispatchEvent(new Event('readystatechange'));" +
+      "if(xhr.onload)try{xhr.onload();}catch(e){}xhr.dispatchEvent(new Event('load'));xhr.dispatchEvent(new Event('loadend'));}" +
+      "idbGetAny(u).then(function(b){if(b){fake(b);return;}if(OFF){if(xhr.onerror)try{xhr.onerror();}catch(e){}xhr.dispatchEvent(new Event('error'));xhr.dispatchEvent(new Event('loadend'));return;}" +
+      "xhr.addEventListener('load',function(){try{var r=xhr.response;if(r instanceof ArrayBuffer)idbPutAll(u,r);else if(typeof r==='string')idbPutAll(u,new TextEncoder().encode(r).buffer);}catch(e){}});" +
+      "XS.apply(xhr,args);});};" +
       "function hook(proto,prop){try{var d=Object.getOwnPropertyDescriptor(proto,prop);if(!d||!d.set)return;" +
-      "Object.defineProperty(proto,prop,{configurable:true,enumerable:d.enumerable,get:d.get,set:function(v){var el=this,a=abs(v),t=mime(a);" +
-      "if(skip(a)||!rewire(a)){d.set.call(el,v);return;}" +
-      "function put(b){d.set.call(el,URL.createObjectURL(new Blob([b],{type:t||'application/javascript'})));}" +
-      "idbGet(a).then(function(b){if(b){put(b);return;}if(prop==='src'&&t){IN++;F(a).then(function(r){return r.arrayBuffer();}).then(function(b){idbPut(a,b);put(b);}).catch(function(){d.set.call(el,v);}).then(function(){IN--;DONE++;},function(){IN--;});return;}d.set.call(el,v);});}});}catch(e){}}" +
+      "Object.defineProperty(proto,prop,{configurable:true,enumerable:d.enumerable,get:d.get,set:function(v){var el=this,a=abs(v),t=mime(a)||'application/octet-stream';" +
+      "if(skip(a)||keep(a)||!patch(a)){d.set.call(el,v);return;}" +
+      "function put(b){d.set.call(el,URL.createObjectURL(new Blob([b],{type:t})));}" +
+      "idbGetAny(a).then(function(b){if(b){put(b);return;}if(OFF){d.set.call(el,v);return;}IN++;F(a).then(function(r){return r.arrayBuffer();}).then(function(b){idbPutAll(a,b);put(b);}).catch(function(){d.set.call(el,v);}).then(function(){IN--;DONE++;},function(){IN--;});});}});}catch(e){}}" +
       "if(window.HTMLScriptElement)hook(HTMLScriptElement.prototype,'src');" +
+      "if(window.HTMLLinkElement)hook(HTMLLinkElement.prototype,'href');" +
       "var SA=Element.prototype.setAttribute;" +
-      "Element.prototype.setAttribute=function(n,v){if((n==='src'||n==='href')&&typeof v==='string'){var a=abs(v),t=mime(a);if(n==='src'&&t&&rewire(a)&&!skip(a)){var el=this;" +
-      "idbGet(a).then(function(b){if(b){SA.call(el,n,URL.createObjectURL(new Blob([b],{type:t})));return;}IN++;F(a).then(function(r){return r.arrayBuffer();}).then(function(b){idbPut(a,b);SA.call(el,n,URL.createObjectURL(new Blob([b],{type:t})));}).catch(function(){SA.call(el,n,v);}).then(function(){IN--;DONE++;},function(){IN--;});});return;}}return SA.apply(this,arguments);};" +
+      "Element.prototype.setAttribute=function(n,v){if((n==='src'||n==='href')&&typeof v==='string'){var a=abs(v);if(patch(a)&&!skip(a)&&!keep(a)){var el=this,t=mime(a)||(n==='href'?'text/css':'application/javascript');" +
+      "idbGetAny(a).then(function(b){if(b){SA.call(el,n,URL.createObjectURL(new Blob([b],{type:t})));return;}if(OFF){SA.call(el,n,v);return;}IN++;F(a).then(function(r){return r.arrayBuffer();}).then(function(b){idbPutAll(a,b);SA.call(el,n,URL.createObjectURL(new Blob([b],{type:t})));}).catch(function(){SA.call(el,n,v);}).then(function(){IN--;DONE++;},function(){IN--;});});return;}}return SA.apply(this,arguments);};" +
       "})();<\/script>";
   }
-
   function withPatch(html) {
     html = String(html || "");
     if (/whyRevivedAssets/.test(html)) return html;
@@ -1054,6 +1075,73 @@
     if (list.indexOf(c) === -1) list.push(c);
     for (i = 0; i < list.length; i++) await idbPut(list[i], buf);
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+  }
+
+  async function fetchBin(url) {
+    if (!url || /^(blob:|data:)/i.test(url)) return null;
+    var list = mirrors(url);
+    var i;
+    for (i = 0; i < list.length; i++) {
+      var hit = await idbGet(list[i]);
+      if (hit) return hit;
+    }
+    if (offlineMode) return null;
+    for (i = 0; i < list.length; i++) {
+      try {
+        var res = await fetch(list[i]);
+        if (res.ok) {
+          var buf = await res.arrayBuffer();
+          await cacheStore(url, buf);
+          return buf;
+        }
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  function cacheableUrl(u) {
+    u = String(u || "");
+    if (/u-cvlassrom-y\/google|\/ruffle\.js/i.test(u)) return false;
+    return /raw\.githubusercontent\.com|jsdelivr\.(net|b-cdn\.net)|fastly\.jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare|\.swf(\?|$)/i.test(u);
+  }
+
+  function absUrl(src, base) {
+    try { return new URL(String(src || ""), base || undefined).href; } catch (e) { return String(src || ""); }
+  }
+
+  async function blobifyHtml(html, base) {
+    html = String(html || "");
+    var re = /<(script|link)\b[^>]*>/gi;
+    var found = [];
+    var m;
+    while ((m = re.exec(html))) {
+      var tag = m[0];
+      var el = m[1].toLowerCase();
+      if (el === "link" && !/rel=["']stylesheet["']/i.test(tag)) continue;
+      var sm = tag.match(/\s(?:src|href)=["']([^"']+)["']/i);
+      if (!sm) continue;
+      var src = sm[1];
+      if (/^(blob:|data:)/i.test(src)) continue;
+      var abs = absUrl(src, base);
+      if (!/^https?:/i.test(abs) || !cacheableUrl(abs)) continue;
+      found.push({ tag: tag, src: src, abs: abs, el: el });
+    }
+    var i, seen = {};
+    for (i = 0; i < found.length; i++) {
+      var job = found[i];
+      if (seen[job.tag]) continue;
+      seen[job.tag] = true;
+      var buf = await fetchBin(job.abs);
+      if (!buf) continue;
+      var type = job.el === "link" ? "text/css" : "application/javascript";
+      var blob = URL.createObjectURL(new Blob([buf], { type: type }));
+      html = html.split(job.tag).join(job.tag.replace(job.src, blob));
+    }
+    return html;
+  }
+
+  async function showCached(html, opt, base) {
+    show(await blobifyHtml(html, base || ""), opt);
   }
   function bootGithubModules(html) {
     html = String(html || "");
@@ -1434,15 +1522,26 @@
     return /<script[^>]+src=["'][^"']*ruffle\.js/i.test(html || "");
   }
 
+  function ownRufflePage(html) {
+    html = String(html || "");
+    if (!/RufflePlayer\.config/.test(html)) {
+      var boot = "<script>window.RufflePlayer=window.RufflePlayer||{};window.RufflePlayer.config=Object.assign(" + ruffleConfigJson() + ",window.RufflePlayer.config||{});<\/script>";
+      if (/<script[^>]+src=["'][^"']*ruffle\.js/i.test(html)) html = html.replace(/(<script[^>]+src=["'][^"']*ruffle\.js)/i, boot + "$1");
+      else if (/<head[^>]*>/i.test(html)) html = html.replace(/<head([^>]*)>/i, "<head$1>" + boot);
+      else html = boot + html;
+    }
+    return injectFit(html);
+  }
+
   function show(html, opt) {
     opt = opt || {};
-    if (!opt.bare) html = withPatch(html);
+    html = withPatch(html);
     layout();
     var frame = document.getElementById("frame");
     var tok = loadToken;
     dropPageBlob();
     frame.removeAttribute("src");
-    var skipFit = !!(opt.bare || ownCdnBase(html) || /createUnityInstance|poki-sdk|emscripten|Engine\.startGame|IDBFS|RSDKv5U|type=["']module["']|nova-craft|raw\.githubusercontent\.com|jsdelivr|wasm\.rip|mergeFiles|ruffle\.js/i.test(html));
+    var skipFit = !!(opt.bare || ownCdnBase(html) || /createUnityInstance|poki-sdk|emscripten|Engine\.startGame|IDBFS|RSDKv5U|type=["']module["']|nova-craft|raw\.githubusercontent\.com|jsdelivr|wasm\.rip|mergeFiles/i.test(html));
     frame.srcdoc = skipFit ? html : injectFit(html);
     frame.onload = function () {
       layout();
@@ -1451,14 +1550,14 @@
     };
   }
 
-  function playHtml(html, base) {
+  async function playHtml(html, base) {
     if (hasOwnRuffle(html)) {
-      show(html, { bare: true });
+      show(await blobifyHtml(ownRufflePage(html), base));
       return;
     }
-    show(withBase(html, base));
+    html = withBase(html, base);
+    await showCached(html, {}, ownCdnBase(html) || base);
   }
-
   function playUrl(url) {
     layout();
     var frame = document.getElementById("frame");
@@ -1627,7 +1726,7 @@
     }
     if (WASM_RIP[file]) {
       var wr = wasmRipSpec(file);
-      playHtml(wr.html, wr.base);
+      await playHtml(wr.html, wr.base);
       return;
     }
     if (file === "flesh-engine.html") {
@@ -1641,7 +1740,7 @@
     if (LIVE_PAGE[file]) {
       try {
         var livePage = pageUrl(g);
-        playHtml(fixGameHtml(innerHtml(await fetchText(livePage))), dirOf(mirrors(livePage)[0]));
+        await playHtml(fixGameHtml(innerHtml(await fetchText(livePage))), dirOf(mirrors(livePage)[0]));
       } catch (e) {
         if (offlineMode) {
           chromeNote("open that one once while online first");
@@ -1682,35 +1781,41 @@
         if (!destBlocked(abs) && !pageDest) {
           g.dest = abs;
           if (info.kind) g.kind = info.kind;
+          saveCache();
+          saveCache();
+          saveCache();
         }
         if (info.kind === "flash" || /\.swf($|\?)/i.test(abs)) swf = abs;
       }
       if (html && hasOwnRuffle(html)) {
-        show(html, { bare: true });
+        show(await blobifyHtml(ownRufflePage(html), ownCdnBase(html) || dirOf(mirrors(url)[0])));
         return;
       }
       if (swf && /\.swf($|\?)/i.test(swf) && !destBlocked(swf)) {
-        show(ruffleDoc(swf), { bare: true });
+        await fetchBin(swf);
+        await showCached(ruffleDoc(swf), { bare: true }, RUFFLE_DIR);
         return;
       }
       var live = mirrors(url)[0];
       if (g.kind !== "nds" && html && (needsLiveOrigin(html) || g.kind === "web")) {
-        playHtml(html, ownCdnBase(html) || dirOf(live));
+        await playHtml(html, ownCdnBase(html) || dirOf(live));
         return;
       }
       if (html && /EJS_/i.test(html)) {
-        show(withBase(html, ownCdnBase(html) || dirOf(live)));
+        await showCached(withBase(html, ownCdnBase(html) || dirOf(live)), {}, ownCdnBase(html) || dirOf(live));
         return;
       }
     } catch (e) {}
     var dest = g.dest;
     if (dest && destBlocked(dest)) { hideLoad(); return; }
     if (dest && /\.swf/i.test(dest)) {
-      show(ruffleDoc(dest), { bare: true });
+      await fetchBin(dest);
+      await showCached(ruffleDoc(dest), { bare: true }, RUFFLE_DIR);
       return;
     }
     if (g.kind === "nds" && dest) {
-      show(ndsDoc(dest));
+      await fetchBin(dest);
+      await showCached(ndsDoc(dest), {}, EJS + "/");
       return;
     }
     if (dest && /\.json$/i.test(dest)) {
