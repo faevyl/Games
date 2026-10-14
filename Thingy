@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-gust ui-glass">
 <head>
 <!--
   note: why? proxy browser — single file edition. no cloudflare worker needed.
@@ -22,8 +22,8 @@
   how to change the wisp server:
     - open settings -> transport -> wisp server. enter any wss:// wisp endpoint
       (must end with a trailing slash). leave it empty to use the built-in
-      WISP_SERVERS list. the default is the relay GUST uses,
-      wss://wisp.rhw.one/wisp/.
+      WISP_SERVERS list. the default is the public tunnel
+      wss://losing-jeremy-proper-appearance.trycloudflare.com/.
 
   how the wisp patcher works:
     - the parent fetches a page through the wisp tunnel with libcurl.fetch,
@@ -45,10 +45,11 @@
 -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title id="pageTitle">Why?</title>
+<title id="pageTitle">Why Revived</title>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  :root{--accent:#64b5f6;--accent2:#90caf9;--accent-dim:rgba(100,181,246,0.15);--bg:#060618;--surface:#0a0a28;--surface2:#0f0f3a;--surface3:#1a1a4a;--border:rgba(100,181,246,0.15);--text:#e0edff;--text-dim:#6b85b0;--text-bright:#f0f6ff;--pink:#ff2d55;--cyan:#64b5f6;--cyan2:#90caf9;--radius:14px;--radius-sm:8px;--radius-pill:999px;--shadow:0 4px 16px rgba(0,0,0,0.5);--glow:0 0 20px rgba(100,181,246,0.2);--surface-solid:#08082a;--font:-apple-system,BlinkMacSystemFont,sans-serif}
+  :root{--accent:#7dd3c0;--accent2:#b8ebe0;--accent-dim:rgba(125,211,192,0.16);--bg:#0b0d12;--surface:#12151c;--surface2:#181c26;--surface3:#222833;--border:rgba(232,237,244,0.08);--border2:rgba(125,211,192,0.32);--text:#e8edf4;--text-dim:#8b95a8;--text-bright:#f7fafc;--pink:#ff7a9a;--cyan:#7dd3c0;--cyan2:#b8ebe0;--btn-ink:#0b1210;--btn-radius:10px;--radius:14px;--radius-sm:8px;--radius-pill:999px;--shadow:0 4px 16px rgba(0,0,0,0.5);--glow:0 0 28px rgba(125,211,192,0.16);--surface-solid:#10141b;--font:-apple-system,BlinkMacSystemFont,sans-serif}
+  html.theme-gust{--accent:#7dd3c0;--accent2:#b8ebe0;--accent-dim:rgba(125,211,192,0.16);--bg:#0b0d12;--surface:#12151c;--surface2:#181c26;--surface3:#222833;--border:rgba(232,237,244,0.08);--border2:rgba(125,211,192,0.32);--text:#e8edf4;--text-dim:#8b95a8;--text-bright:#f7fafc;--pink:#ff7a9a;--cyan:#7dd3c0;--cyan2:#b8ebe0;--btn-ink:#0b1210;--glow:0 0 28px rgba(125,211,192,0.16);--surface-solid:#10141b}
   html.theme-sky{--accent:#64b5f6;--bg:#060618;--surface:#0a0a28;--surface2:#0f0f3a;--surface3:#1a1a4a;--border:rgba(100,181,246,0.15);--text:#e0edff;--text-dim:#6b85b0}
   html.theme-purple{--accent:#a855f7;--bg:#0a0a18;--surface:#0d0a1a;--surface2:#1a1035;--surface3:#2a1a4a;--border:rgba(168,85,247,0.15);--text:#e8e0ff;--text-dim:#7b6b9a}
   html.theme-matrix{--accent:#00ff00;--bg:#000a00;--surface:#001400;--surface2:#002800;--surface3:#003a00;--border:rgba(0,255,0,0.15);--text:#00ffc0;--text-dim:#008800}
@@ -66,7 +67,7 @@
   .status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;box-shadow:0 0 6px var(--accent)}
   .status-dot.loading{background:#fbbf24;box-shadow:0 0 6px #fbbf24}
   .status-dot.error{background:var(--pink);box-shadow:0 0 6px var(--pink)}
-  #statusLabel{display:none}
+  .hidden{display:none !important}
   .main-area{flex:1;position:relative;overflow:hidden}
   .home-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:20px;text-align:center;overflow-y:auto;animation:fadeUp .6s ease}
   .home-screen.hidden{display:none}
@@ -180,20 +181,120 @@
   .bg-remove-btn{display:none;padding:3px 8px;border-radius:var(--radius-sm);background:var(--pink);border:none;color:#fff;font-size:9px;cursor:pointer;margin-top:3px;-webkit-appearance:none}
   .bg-remove-btn.show{display:inline-block}
   html.ui-sharp{--radius:4px;--radius-sm:2px;--radius-pill:4px}
-  html.ui-minimal .tab-strip,html.ui-minimal .bm-strip,html.ui-minimal .cmd-bar{background:transparent;border:none}
+  html.ui-minimal .tab-bar,html.ui-minimal .bookmark-bar,html.ui-minimal .nav-bar{background:transparent;border:none}
   html.ui-minimal .tab-pill{background:transparent;border:none;color:var(--text-dim)}
+  html.theme-gust .top-bar{background:transparent;border-bottom-color:var(--border)}
+  html.theme-gust .top-brand{background:none;-webkit-text-fill-color:var(--text);color:var(--text);font-weight:700;letter-spacing:-.04em}
+  html.theme-gust .top-brand .tb-icon{filter:none;color:var(--accent);-webkit-text-fill-color:var(--accent)}
+  html.theme-gust .tab-bar{background:transparent;padding:6px 12px 0;border-bottom-color:transparent}
+  html.theme-gust .tab-pill{background:transparent;border-color:transparent;box-shadow:none;border-radius:10px 10px 0 0}
+  html.theme-gust .tab-pill.active{background:var(--surface);border-color:var(--border);box-shadow:none}
+  html.theme-gust .nav-bar,html.theme-gust .mode-row,html.theme-gust .status-bar{background:var(--surface);border-color:var(--border)}
+  html.theme-gust .url-wrap .go-btn,html.theme-gust .home-search-wrap button,html.theme-gust .block-page button,html.theme-gust .sp-btn-accent,html.theme-gust .about-card .ac-close,html.theme-gust .search-mode-btn.active{
+    background:var(--accent);border-color:transparent;color:var(--btn-ink);-webkit-text-fill-color:var(--btn-ink)
+  }
+  html.theme-gust .home-logo,html.theme-gust .intro-logo{animation:none;background:none;-webkit-text-fill-color:var(--text-bright);color:var(--text-bright);letter-spacing:-.05em;font-weight:700;filter:none}
+  html.theme-gust .home-logo{font-size:68px}
+  html.theme-gust .home-screen::before{content:'';position:absolute;width:min(520px,80vw);height:min(520px,80vw);border-radius:50%;background:radial-gradient(circle,rgba(125,211,192,.14),transparent 68%);top:8%;left:50%;transform:translateX(-50%);pointer-events:none;z-index:0}
+  html.theme-gust .home-brand,html.theme-gust .home-search-wrap,html.theme-gust .home-pane{position:relative;z-index:1}
+  html.theme-gust .home-search-wrap,html.theme-gust .url-wrap{background:rgba(18,21,28,.86);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+  html.theme-gust .sp-header h3,html.theme-gust .about-card .ac-logo{background:none;-webkit-text-fill-color:var(--text-bright);color:var(--text-bright)}
+  html.theme-gust .settings-panel{background:rgba(18,21,28,.94);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+  html.theme-gust .home-byline{color:var(--text-dim);letter-spacing:.02em}
+  .home-clock{margin-top:10px;font-size:13px;font-weight:600;letter-spacing:.04em;color:var(--text-dim)}
+  html.theme-gust .home-clock{color:var(--accent);font-size:15px}
+  .tab-bar{display:flex;align-items:flex-end;gap:2px;background:var(--surface2);padding:8px 10px 0;border-bottom:1px solid var(--border);flex-shrink:0}
+  .tab-container{display:flex;align-items:flex-end;gap:3px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+  .tab-pill{display:flex;align-items:center;gap:6px;padding:7px 12px;font-size:12px;font-weight:600;color:var(--text-dim);background:var(--bg);border:1px solid var(--border);border-bottom:none;border-radius:10px 10px 0 0;cursor:pointer;white-space:nowrap;flex-shrink:0;max-width:190px;min-width:92px;-webkit-appearance:none}
+  .tab-pill.active{background:var(--surface);color:var(--text-bright);border-color:var(--border2)}
+  .tab-pill .tp-title{overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1;text-align:left}
+  .tab-pill .tp-x{font-size:14px;line-height:1;color:var(--text-dim);background:none;border:none;cursor:pointer;padding:1px 4px;-webkit-appearance:none}
+  .new-tab-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;flex-shrink:0;margin-bottom:4px;-webkit-appearance:none}
+  .tab-dropdown{position:relative;flex-shrink:0;margin-bottom:4px}
+  .tab-dropdown-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:none;border:none;color:var(--text-dim);font-size:16px;cursor:pointer;-webkit-appearance:none}
+  .tab-dropdown-menu{position:absolute;top:calc(100% + 8px);left:0;bottom:auto;right:auto;background:rgba(18,21,28,.94);border:1px solid var(--border2);border-radius:12px;padding:6px;min-width:150px;box-shadow:var(--shadow);display:none;z-index:150}
+  .nav-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+  .nav-cluster{display:inline-flex;align-items:center;gap:3px;padding:3px;background:var(--surface2);border:1px solid var(--border);border-radius:13px;flex-shrink:0}
+  .nav-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:34px;height:32px;padding:0 10px;border:1px solid transparent;background:transparent;color:var(--text-dim);font-weight:700;font-size:12px;border-radius:var(--btn-radius);cursor:pointer;-webkit-appearance:none}
+  .nav-btn:disabled{opacity:.3;pointer-events:none}
+  .nav-act{padding:0 12px;color:var(--text);background:var(--surface2);border-color:var(--border)}
+  .nav-more{position:relative;flex-shrink:0}
+  .nav-more-menu{display:none;position:absolute;top:calc(100% + 8px);right:0;min-width:180px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:6px;z-index:160;box-shadow:var(--shadow)}
+  .nav-more-menu.open{display:block}
+  .nav-more-menu button{display:flex;width:100%;background:none;border:0;color:var(--text);font-size:12px;padding:9px 10px;border-radius:8px;cursor:pointer;text-align:left;font-weight:700;-webkit-appearance:none}
+  .nav-more-menu button:hover{background:var(--accent-dim);color:var(--accent)}
+  .url-wrap{flex:1;display:flex;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:999px;overflow:hidden}
+  .url-wrap:focus-within{border-color:var(--accent);box-shadow:var(--glow)}
+  .url-wrap input{flex:1;min-width:0;background:transparent;border:none;padding:8px 14px;color:var(--text);font-size:13px;outline:none;-webkit-appearance:none}
+  .url-wrap .go-btn{border:none;padding:0 16px;font-weight:800;font-size:13px;cursor:pointer;background:var(--accent);color:var(--btn-ink);-webkit-appearance:none}
+  .mode-row{display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+  .mode-row .search-mode-btn{padding:0 14px;min-height:28px;border-radius:999px}
+  .bookmark-bar{display:flex;align-items:center;gap:4px;padding:5px 10px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto}
+  .home-pane{width:100%;max-width:720px;display:flex;flex-direction:column;align-items:center}
+  .quick-links{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;width:100%;max-width:520px;margin-top:14px}
+  .quick-links .ql-pill{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;border-radius:14px;background:var(--surface);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:11px;font-weight:600;-webkit-appearance:none}
+  .quick-links .ql-pill .qli{font-size:16px;background:var(--surface2);border:1px solid var(--border);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center}
+  .home-search-wrap{max-width:520px;background:var(--surface);border:1px solid var(--border);border-radius:999px;overflow:hidden;box-shadow:var(--shadow)}
+  .home-search-wrap input{border:none;background:transparent;border-radius:0;padding:12px 18px}
+  .home-search-wrap button{border:none;border-radius:0;background:var(--accent);color:var(--btn-ink);font-weight:800;padding:0 22px}
+  .status-bar{display:flex;align-items:center;justify-content:space-between;padding:4px 12px;font-size:10px;color:var(--text-dim);background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;min-height:22px}
+  .toast{bottom:28px}
 </style>
 </head>
 <body>
 
 <!-- Top Bar -->
 <div class="top-bar">
-  <div class="top-brand"><span class="tb-icon">&#9889;</span>Why?</div>
+  <div class="top-brand"><span class="tb-icon">&#9889;</span>Why Revived</div>
   <div class="top-status">
     <span class="status-dot" id="statusDot"></span>
     <span id="statusLabel">Ready</span>
   </div>
 </div>
+
+<div class="tab-bar" id="tabBar">
+  <div class="tab-dropdown">
+    <button class="tab-dropdown-btn" id="tabDropdownBtn">&#8942;</button>
+    <div class="tab-dropdown-menu" id="tabDropdownMenu">
+      <button id="closeOtherTabs">Close others</button>
+      <button id="closeAllTabs">Close all</button>
+    </div>
+  </div>
+  <div class="tab-container" id="tabContainer"></div>
+  <button class="new-tab-btn" id="newTabBtn" title="New Tab">+</button>
+</div>
+
+<div class="nav-bar">
+  <div class="nav-cluster">
+    <button class="nav-btn" id="backBtn" title="Back" disabled>&#9664;</button>
+    <button class="nav-btn" id="fwdBtn" title="Forward" disabled>&#9654;</button>
+    <button class="nav-btn" id="refreshBtn" title="Reload">&#8635;</button>
+    <button class="nav-btn" id="homeBtn" title="Home">&#8962;</button>
+  </div>
+  <div class="url-wrap">
+    <input type="text" id="urlInput" placeholder="Search or enter URL..." autocomplete="off" spellcheck="false">
+    <button class="go-btn" id="goBtn" title="Go">Go</button>
+  </div>
+  <button class="nav-btn nav-act" id="settingsBtn" title="Settings">Settings</button>
+  <div class="nav-more">
+    <button class="nav-btn nav-act" id="navMoreBtn" type="button" title="More">More</button>
+    <div class="nav-more-menu" id="navMoreMenu">
+      <button type="button" id="fileOpenBtn">Open local file</button>
+      <button type="button" id="bookmarkBtn">Bookmarks</button>
+      <button type="button" id="fullscreenBtn">Fullscreen</button>
+    </div>
+  </div>
+</div>
+
+<div class="mode-row">
+  <div class="search-modes" id="searchModes">
+    <button class="search-mode-btn active" data-mode="web">Web</button>
+    <button class="search-mode-btn" data-mode="images">Images</button>
+    <button class="search-mode-btn" data-mode="videos">Videos</button>
+  </div>
+</div>
+
+<div class="bookmark-bar hidden" id="bookmarkBar"></div>
 
 <!-- Main Area -->
 <div class="main-area" id="mainArea">
@@ -201,26 +302,26 @@
   <!-- Home Screen -->
   <div class="home-screen" id="homePage">
     <div class="home-brand">
-      <div class="home-byline">single file. no worker. wisp tunnel.</div>
-      <div class="home-logo">Why?</div>
-      <div class="home-tagline" id="taglineRotator">Browse the open web, freely.</div>
-    </div>
-    <div class="search-modes" id="searchModes">
-      <button class="search-mode-btn active" data-mode="web">Web</button>
-      <button class="search-mode-btn" data-mode="images">Images</button>
-      <button class="search-mode-btn" data-mode="videos">Videos</button>
+      <div class="home-byline">Search or browse.</div>
+      <div class="home-logo" id="homeLogo">Why Revived</div>
+      <div class="home-tagline" id="taglineRotator">YOU CAN SEE MY CURSED TECHNIQUE, MAHORGAAA!</div>
+      <div class="home-clock" id="homeClock"></div>
     </div>
     <div class="home-search-wrap">
       <input type="text" id="homeSearch" placeholder="Search or enter URL..." autofocus>
       <button onclick="whyNavigate(document.getElementById('homeSearch').value)">Go</button>
     </div>
-    <div class="quick-links" id="quickLinks">
-      <button class="ql-pill" data-url="https://www.google.com"><span class="qli">G</span>Google</button>
-      <button class="ql-pill" data-url="https://www.wikipedia.org"><span class="qli">W</span>Wikipedia</button>
-      <button class="ql-pill" data-url="https://www.reddit.com"><span class="qli">R</span>Reddit</button>
-      <button class="ql-pill" data-url="https://www.github.com"><span class="qli">&#60;&#62;</span>GitHub</button>
-      <button class="ql-pill" data-url="https://www.duckduckgo.com"><span class="qli">D</span>DuckDuckGo</button>
-      <button class="ql-pill" data-url="https://search.brave.com"><span class="qli">B</span>Brave</button>
+    <div class="home-pane">
+      <div class="quick-links" id="quickLinks">
+        <button class="ql-pill" data-url="https://www.google.com"><span class="qli">G</span>Google</button>
+        <button class="ql-pill" data-url="https://www.youtube.com"><span class="qli">&#9654;</span>YouTube</button>
+        <button class="ql-pill" data-url="https://www.easyfun.gg/mobile-games/roblox-on-pc.html"><span class="qli">R</span>Roblox</button>
+        <button class="ql-pill" data-url="https://scratch.mit.edu/"><span class="qli">S</span>Scratch</button>
+        <button class="ql-pill" data-url="https://www.wikipedia.org"><span class="qli">W</span>Wikipedia</button>
+        <button class="ql-pill" data-url="https://www.github.com"><span class="qli">&lt;&gt;</span>GitHub</button>
+        <button class="ql-pill" data-url="https://www.duckduckgo.com"><span class="qli">D</span>DuckDuckGo</button>
+        <button class="ql-pill" data-url="https://www.reddit.com"><span class="qli">R</span>Reddit</button>
+      </div>
     </div>
   </div>
 
@@ -238,52 +339,16 @@
   </div>
 </div>
 
-<!-- Bottom Bar -->
-<div class="bottom-bar" id="bottomBar">
-  <div class="tab-strip hidden" id="tabBar">
-    <div class="tab-dropdown">
-      <button class="tab-dropdown-btn" id="tabDropdownBtn">&#8942;</button>
-      <div class="tab-dropdown-menu" id="tabDropdownMenu">
-        <button id="closeOtherTabs">Close others</button>
-        <button id="closeAllTabs">Close all</button>
-      </div>
-    </div>
-    <div id="tabContainer" style="display:flex;align-items:center;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1"></div>
-    <button class="tab-add" id="newTabBtn">+</button>
+<div class="status-bar" id="bottomStatus">
+  <div class="bs-left">
+    <span id="transportName">transport: wisp</span>
+    <span id="relayName" style="display:none">relay: cors</span>
+    <span id="bottomStatusText">Ready</span>
   </div>
-
-  <div class="bm-strip hidden" id="bookmarkBar"></div>
-
-  <div class="cmd-bar" id="cmdBar">
-    <div class="cmd-nav">
-      <button class="cmd-btn" id="backBtn" disabled>&#9664;</button>
-      <button class="cmd-btn" id="fwdBtn" disabled>&#9654;</button>
-      <button class="cmd-btn" id="refreshBtn">&#8635;</button>
-    </div>
-    <div class="cmd-search">
-      <input type="text" id="urlInput" placeholder="Enter URL..." autocomplete="off" spellcheck="false">
-    </div>
-    <button class="cmd-btn accent" id="goBtn">&#10148;</button>
-    <div class="cmd-actions">
-      <button class="cmd-btn" id="homeBtn" title="Home">&#8962;</button>
-      <button class="cmd-btn" id="fileOpenBtn" title="Open File">&#128194;</button>
-      <button class="cmd-btn" id="bookmarkBtn" title="Bookmarks">&#9733;</button>
-      <button class="cmd-btn" id="fullscreenBtn" title="Fullscreen">&#9974;</button>
-      <button class="cmd-btn" id="settingsBtn" title="Settings">&#9881;</button>
-    </div>
-  </div>
-
-  <input type="file" id="fileInput" style="display:none">
-
-  <div class="bottom-status" id="bottomStatus">
-    <div class="bs-left">
-      <span id="transportName">transport: wisp</span>
-      <span id="relayName" style="display:none">relay: cors</span>
-      <span id="bottomStatusText">Ready</span>
-    </div>
-    <div class="bs-right"><span id="bottomTabInfo"></span></div>
-  </div>
+  <div class="bs-right"><span id="bottomTabInfo"></span></div>
 </div>
+
+<input type="file" id="fileInput" style="display:none">
 
 <!-- Settings Panel -->
 <div class="settings-mask" id="settingsMask" onclick="whyCloseSettings()"></div>
@@ -317,10 +382,10 @@
           <select id="transportChoice"><option value="wisp">Wisp tunnel</option><option value="relay">CORS relay</option></select>
         </div>
         <div class="sp-row"><label>Wisp Server</label>
-          <input type="text" id="wispServer" placeholder="wss://wisp.rhw.one/wisp/" style="max-width:190px">
+          <input type="text" id="wispServer" placeholder="wss://losing-jeremy-proper-appearance.trycloudflare.com/" style="max-width:190px">
         </div>
         <div class="sp-row"><label>Public Wisp servers</label>
-          <select id="wispPreset"><option value="">(use default list)</option><option value="wss://wisp.rhw.one/wisp/">GUST (wisp.rhw.one)</option><option value="wss://wisp.mercurywork.shop/">wisp.mercurywork.shop</option><option value="wss://mages.io/wisp/">mages.io</option><option value="wss://young-glitter-de54.faevyl.workers.dev/wisp/">young-glitter (your worker)</option><option value="wss://wisp.wiidev.me/">wisp.wiidev.me</option><option value="wss://wisp.ggtyler.dev/">wisp.ggtyler.dev</option><option value="wss://wisp.holy.how/">wisp.holy.how</option></select>
+          <select id="wispPreset"><option value="">(use default list)</option><option value="wss://losing-jeremy-proper-appearance.trycloudflare.com/">public tunnel (trycloudflare)</option><option value="ws://127.0.0.1:5001/">wisp-js on this PC (127.0.0.1:5001)</option><option value="wss://wisp.rhw.one/wisp/">GUST (wisp.rhw.one)</option><option value="wss://wisp.mercurywork.shop/">wisp.mercurywork.shop</option><option value="wss://mages.io/wisp/">mages.io</option><option value="wss://young-glitter-de54.faevyl.workers.dev/wisp/">young-glitter (your worker)</option><option value="wss://wisp.wiidev.me/">wisp.wiidev.me</option><option value="wss://wisp.ggtyler.dev/">wisp.ggtyler.dev</option><option value="wss://wisp.holy.how/">wisp.holy.how</option></select>
         </div>
       </div>
       <div class="sp-section">
@@ -367,8 +432,8 @@
 <!-- About overlay -->
 <div class="about-overlay" id="aboutOverlay">
   <div class="about-card">
-    <div class="ac-logo">Why?</div>
-    <div class="ac-version">Why? single file v1.0</div>
+    <div class="ac-logo">Why Revived</div>
+    <div class="ac-version">Why Revived</div>
     <div class="ac-desc">A single-file proxy browser. No cloudflare worker — pages load through a wisp websocket tunnel (libcurl.js in-browser wasm), with public cors relays kept as a fallback transport. youtube and sites with bot walls usually wont work.</div>
     <button class="ac-close" onclick="document.getElementById('aboutOverlay').classList.remove('open')">Close</button>
   </div>
@@ -376,7 +441,7 @@
 
 <!-- Intro splash -->
 <div class="intro-overlay" id="introOverlay">
-  <div class="intro-logo">Why?</div>
+  <div class="intro-logo">Why Revived</div>
   <div class="intro-tagline">question everything.</div>
 </div>
 
@@ -484,6 +549,7 @@
   // both declare the same const and the second one throws.
   var LIBCURL_FULL = 'https://cdn.jsdelivr.net/npm/libcurl.js@0.7.4/libcurl_full.js';
   var WISP_SERVERS = [
+    'wss://losing-jeremy-proper-appearance.trycloudflare.com/',
     'wss://wisp.rhw.one/wisp/',
     'wss://wisp.mercurywork.shop/',
     'wss://mages.io/wisp/',
@@ -1295,9 +1361,9 @@
     searchEngine: 'brave',
     relayChoice: 'auto',
     transport: 'wisp',
-    wispServer: 'wss://wisp.rhw.one/wisp/',
+    wispServer: 'wss://losing-jeremy-proper-appearance.trycloudflare.com/',
     blacklist: '',
-    theme: 'sky',
+    theme: 'gust',
     uiStyle: 'glass',
     customBg: ''
   };
@@ -1313,6 +1379,8 @@
       var s = JSON.parse(localStorage.getItem(STORAGE_KEY));
       if(!s) return JSON.parse(JSON.stringify(defaultSettings));
       for(var k in defaultSettings){ if(s[k]===undefined) s[k]=defaultSettings[k]; }
+      if(!s._revivedUi){ s._revivedUi = true; s.theme = 'gust'; }
+      if(!s.wispServer || /trycloudflare\.com/i.test(s.wispServer)) s.wispServer = defaultSettings.wispServer;
       return s;
     }catch(e){ return JSON.parse(JSON.stringify(defaultSettings)); }
   }
@@ -1500,9 +1568,6 @@
       pill.onclick = function(){ switchTab(i); };
       container.appendChild(pill);
     });
-    var tb = document.getElementById('tabBar');
-    if(tabs.length > 1) tb.classList.remove('hidden');
-    else tb.classList.add('hidden');
   }
 
   function switchTab(i){
@@ -1773,6 +1838,7 @@
     });
 
     var THEMES = [
+      { id:'gust', label:'Gust', bg:'#0b0d12', accent:'#7dd3c0' },
       { id:'sky', label:'Sky', bg:'#060618', accent:'#64b5f6' },
       { id:'purple', label:'Purple', bg:'#0a0a18', accent:'#a855f7' },
       { id:'matrix', label:'Matrix', bg:'#000a00', accent:'#00ff00' },
@@ -2031,6 +2097,23 @@
       }
     };
 
+    function whyTickClock(){
+      var el = document.getElementById('homeClock');
+      if(!el) return;
+      var d = new Date();
+      el.textContent = d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) + '  \u00b7  ' + d.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'});
+    }
+    whyTickClock();
+    setInterval(whyTickClock, 10000);
+    var navMoreBtn = document.getElementById('navMoreBtn');
+    var navMoreMenu = document.getElementById('navMoreMenu');
+    if(navMoreBtn && navMoreMenu){
+      navMoreBtn.onclick = function(e){
+        e.stopPropagation();
+        navMoreMenu.classList.toggle('open');
+      };
+      document.addEventListener('click', function(){ navMoreMenu.classList.remove('open'); });
+    }
     initSettingsUI();
     renderBookmarkBar();
     updateTabs();
